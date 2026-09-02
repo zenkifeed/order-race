@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SquidGame — Order Race</title>
+<style>
+:root{
+  --paper:#0e120f; --surface:#161b17; --surface-2:#1e241f;
+  --ink:#e4e9e0; --ink-2:#aab3a8; --ink-3:#7d867d;
+  --rail:#2c332d; --turf:#48c390; --turf-soft:#15382a;
+  --lure:#f0be51; --danger:#e37a63;
+  --ease-pop:cubic-bezier(.34,1.56,.64,1);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);overflow:hidden;
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+button{font:600 14px/1 inherit;padding:11px 18px;border-radius:5px;cursor:pointer;
+  background:var(--turf);color:#08110c;border:1px solid var(--turf);
+  transition:transform .09s var(--ease-pop)}
+button:active{transform:translateY(2px)}
+button.ghost{background:transparent;color:var(--ink-2);border-color:var(--rail)}
+button:hover{filter:brightness(1.1)}
+button:focus-visible{outline:2px solid var(--lure);outline-offset:2px}
+label{display:block;font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--ink-2);margin:0 0 5px}
+input,textarea{width:100%;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;
+  background:var(--paper);color:var(--ink);border:1px solid var(--rail);border-radius:4px;padding:9px 10px}
+input:focus,textarea:focus{outline:2px solid var(--turf);outline-offset:1px}
+
+#setup{position:fixed;inset:0;overflow-y:auto;padding:40px 20px;background:var(--paper);z-index:30}
+.panel{max-width:760px;margin:0 auto}
+.panel h1{font-size:clamp(24px,4vw,34px);margin:0 0 6px;letter-spacing:-.015em}
+.panel .sub{color:var(--ink-2);margin:0 0 26px}
+.card{background:var(--surface);border:1px solid var(--rail);border-radius:7px;padding:20px;margin-bottom:16px}
+.grid{display:grid;gap:14px}
+@media(min-width:640px){.grid.c2{grid-template-columns:repeat(2,1fr)}}
+.hint{font-size:12px;color:var(--ink-3);margin:5px 0 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+#report{white-space:pre;font:12px/1.55 ui-monospace,Consolas,monospace;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid var(--rail);border-radius:5px;
+  padding:14px;margin-top:14px;overflow-x:auto;display:none}
+#report.on{display:block}
+.hubLink{display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+  min-height:44px;padding:11px 15px;border-radius:9px;text-decoration:none;
+  font-size:13.5px;font-weight:600;color:var(--ink-2);
+  background:transparent;border:1px solid var(--rail)}
+.hubLink:hover{color:var(--ink);border-color:var(--ink-3)}
+.hubLink:focus-visible{outline:2px solid var(--lure);outline-offset:2px}
+.ic{display:block;flex:none}
+#setupErr{color:var(--danger);font-size:13px;margin-top:10px;display:none}
+#setupErr.on{display:block}
+
+#stage{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:15}
+
+#hudTop{position:fixed;top:0;left:0;right:0;padding:14px 20px;z-index:10;
+  display:flex;gap:24px;align-items:flex-start;justify-content:space-between;
+  background:linear-gradient(to bottom,rgba(14,18,15,.85),transparent);pointer-events:none}
+#hudTop .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+#hudTop .meta{font-size:11.5px;color:var(--ink-3);letter-spacing:.03em}
+#hudTop .meta b{color:var(--ink-2);font-weight:500}
+.ctrls{display:flex;gap:8px;pointer-events:auto}
+.ctrls button{display:inline-flex;align-items:center;gap:7px;
+  background:rgba(22,27,23,.85);border-color:var(--rail);color:var(--ink-2);
+  min-height:40px;padding:9px 13px}
+#paused{position:fixed;inset:0;z-index:22;display:none;align-items:center;justify-content:center;
+  background:rgba(14,18,15,.72);font-size:clamp(28px,5vw,52px);font-weight:800;color:var(--lure);
+  letter-spacing:.08em;pointer-events:none}
+#paused.on{display:flex}
+
+/* Đèn báo pha — thứ duy nhất khán giả cần đọc được từ cuối phòng. */
+#light{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:12;
+  font-size:clamp(20px,3.4vw,34px);font-weight:800;letter-spacing:.06em;
+  padding:10px 26px;border-radius:8px;pointer-events:none;
+  text-shadow:0 3px 0 rgba(0,0,0,.4);transition:none}
+#light.green{background:var(--turf);color:#06170f}
+#light.red{background:var(--danger);color:#1b0805}
+#light.turn{background:var(--lure);color:#1c1204}
+
+#rail{position:fixed;top:96px;right:16px;width:250px;z-index:10;
+  background:rgba(22,27,23,.92);border:1px solid var(--rail);border-radius:6px;
+  padding:8px;font-size:13px;backdrop-filter:blur(3px);display:none}
+#rail.on{display:block}
+#rail .row{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:4px}
+#rail .row.win{background:var(--turf-soft)}
+#rail .row .r{width:26px;text-align:right;color:var(--ink-3);font-size:12px;
+  font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+#rail .row .sw{width:11px;height:11px;border-radius:3px;flex:none}
+#rail .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rail .hd{padding:5px 7px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+
+#countdown{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(90px,20vw,220px);font-weight:800;color:var(--lure);z-index:20;
+  pointer-events:none;text-shadow:0 8px 0 rgba(0,0,0,.45)}
+
+#podium{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;
+  background:rgba(14,18,15,.93)}
+#podium.on{display:flex}
+#podium .inner{text-align:center;max-width:640px;padding:24px}
+#podium h2{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
+#podium .prize{font-size:22px;color:var(--lure);margin:0 0 24px;font-weight:600}
+#podium .w{display:flex;align-items:center;gap:14px;background:var(--surface);
+  border:1px solid var(--rail);border-radius:7px;padding:14px 18px;margin-bottom:9px;text-align:left;
+  opacity:0;transform:translateY(14px) scale(.96);animation:pop .5s var(--ease-pop) forwards}
+@keyframes pop{to{opacity:1;transform:none}}
+#podium .w .rank{font-size:26px;font-weight:800;color:var(--turf);width:52px;font-variant-numeric:tabular-nums}
+#podium .w .nm{font-size:20px;font-weight:600}
+#podium .seed{margin-top:20px;font-size:11.5px;color:var(--ink-3);word-break:break-all}
+#podium .btns{margin-top:22px;display:flex;gap:10px;justify-content:center}
+
+/* Màn mở: tan ra từ đúng màu mà trang chọn trò chơi đã rửa vào. */
+#veil{
+  position:fixed;inset:0;z-index:999;pointer-events:none;
+  background:#1b1405;
+  animation:veilOut .5s cubic-bezier(.22,1,.36,1) forwards;
+}
+#veil.gone{animation:none;opacity:0;visibility:hidden}
+@keyframes veilOut{to{opacity:0;visibility:hidden}}
+
+/* Báo đã nhận thiết lập từ trang chọn trò chơi. */
+#took{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:40;
+  display:none;align-items:center;gap:9px;
+  padding:12px 18px;border-radius:11px;
+  background:var(--turf-soft);border:1px solid var(--turf);color:var(--ink);
+  font-size:13.5px;font-weight:600;
+  animation:tookIn .45s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+#took.on{display:flex}
+@keyframes tookIn{from{opacity:0;transform:translate(-50%,14px) scale(.9)}}
+
+@media (prefers-reduced-motion:reduce){
+  #podium .w{animation-duration:.01s}
+  button{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <div class="panel">
+    <h1>SquidGame</h1>
+    <p class="sub">
+      Trọng tài quay lưng thì cả đàn tiến lên. Trọng tài quay mặt lại thì ai còn nhúc nhích
+      bị loại. Loại dần cho tới khi còn đúng số người trúng thưởng, rồi những người đó chạy
+      nước rút về đích để phân hạng.
+    </p>
+
+    <div class="card">
+      <div class="grid c2">
+        <div>
+          <label for="n">Số người tham gia</label>
+          <input type="number" id="n" value="45" min="2" max="150">
+          <p class="hint">2 – 150</p>
+        </div>
+        <div>
+          <label for="k">Số người trúng</label>
+          <input type="number" id="k" value="3" min="1" max="10">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label for="prize">Tên giải thưởng</label>
+        <input type="text" id="prize" value="Giải Nhất Quý 3">
+        <p class="hint">Cùng danh sách + cùng tên giải luôn ra cùng người thắng. Đổi tên giải để quay lượt khác.</p>
+      </div>
+      <div style="margin-top:14px">
+        <label for="roster">Danh sách (để trống thì sinh tên giả)</label>
+        <textarea id="roster" rows="4" spellcheck="false" placeholder="Mỗi dòng một tên. Bỏ trống để dùng danh sách giả."></textarea>
+        <p class="hint" id="rosterInfo"></p>
+      </div>
+      <div class="actions">
+        <button id="go">Bắt đầu</button>
+        <button id="analyze" class="ghost">Xem lịch trình các vòng</button>
+      </div>
+      <a class="hubLink" href="index.html" id="hubLink">Chọn trò chơi khác</a>
+      <div id="setupErr"></div>
+      <div id="report"></div>
+    </div>
+  </div>
+</div>
+
+<div id="veil"></div>
+<div id="took"></div>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+<div id="flash"></div>
+<div id="light"></div>
+
+<div id="hudTop">
+  <div>
+    <div class="big" id="survivors"></div>
+    <div class="meta" id="meta"></div>
+    <div class="meta" id="nowPlaying"></div>
+  </div>
+  <div class="ctrls">
+    <button id="pause" class="ghost"></button>
+    <button id="backLive" class="ghost"></button>
+    <button id="mute" class="ghost"></button>
+  </div>
+</div>
+
+<div id="rail"></div>
+<div id="countdown"></div>
+<div id="paused">TẠM DỪNG</div>
+
+<div id="podium">
+  <div class="inner">
+    <h2>Kết quả</h2>
+    <p class="prize" id="podPrize"></p>
+    <div id="podList"></div>
+    <div class="seed mono" id="podSeed"></div>
+    <div class="btns">
+      <button id="again">Lượt khác</button>
+      <button id="back" class="ghost">Đổi thiết lập</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* INJECT:REDLIGHT */
+
+// Mã của trang chạy trong phạm vi riêng — xem chú thích cùng chỗ ở race.template.html.
+(function () {
+
+// ------------------------------------------------------------------ nhạc nền
+/* INJECT:MUSIC */
+
+const nowPlayingEl = document.getElementById("nowPlaying");
+const music = makeMusic(MUSIC, (name) => {
+  nowPlayingEl.textContent = name ? "♪ " + name : "";
+});
+
+// =========================================================================
+//  Sân chơi: nhìn ngang, cả đám đông nằm gọn trong một khung hình.
+//
+//  Không có camera bám gì cả, và đó là chủ ý: sức nặng của cơ chế này nằm ở
+//  chỗ khán giả THẤY đám đông vơi đi sau mỗi lần trọng tài quay mặt. Zoom vào
+//  một nhóm là mất đúng thứ duy nhất đáng xem.
+// =========================================================================
+const MARGIN_L = 70;
+const MARGIN_R = 230;   // chừa chỗ cho trọng tài đứng
+const BAND_TOP = 190;   // chừa chỗ cho đội canh đứng phía trên sân
+const BAND_BOT = 90;
+
+// Ngoại hình và sprite đến từ tools/web/dog.mjs — cùng hệ nhận diện với đường
+// đua, nên một người luôn là cùng một chú chó ở cả hai trò.
+const hashCode = hashName;
+
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const MOTION = REDUCED ? 0.45 : 1;
+const SHAKE_MOTION = REDUCED ? 0 : 1;
+
+/** Giây thật mà một chú chó bị loại bay lên rồi biến mất. */
+const POP_SEC = 0.55;
+
+const LABEL_FONT = "600 12px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif";
+const LABEL_H = 17;
+
+const fx = { flash: 0, shake: 0, punch: 0 };
+function decayFx(dtReal) {
+  fx.flash = Math.max(0, fx.flash - dtReal / 0.20);
+  fx.shake = Math.max(0, fx.shake - dtReal / 0.45);
+  fx.punch = Math.max(0, fx.punch - dtReal / 0.55);
+}
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const flashEl = document.getElementById("flash");
+const lightEl = document.getElementById("light");
+const survivorsEl = document.getElementById("survivors");
+const metaEl = document.getElementById("meta");
+const cdEl = document.getElementById("countdown");
+const railEl = document.getElementById("rail");
+let state = null;
+let dpr = 1;
+let railKey = "";
+const placedOut = [];
+
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.floor(cv.clientWidth * dpr);
+  cv.height = Math.floor(cv.clientHeight * dpr);
+}
+window.addEventListener("resize", resize);
+
+function buildRoster() {
+  const raw = document.getElementById("roster").value.trim();
+  if (raw.length > 0) return raw.split(/\r?\n/);
+  const n = Math.max(2, Math.min(150, Number(document.getElementById("n").value) || 45));
+  return makeTestRoster(1, n);
+}
+
+// =========================================================================
+function startGame() {
+  const err = document.getElementById("setupErr");
+  err.classList.remove("on");
+  audio.unlock();
+
+  let drawResult, game;
+  const prize = document.getElementById("prize").value;
+  const topK = Math.max(1, Number(document.getElementById("k").value) || 3);
+  try {
+    drawResult = draw(buildRoster(), prize);
+    game = buildElimination(drawResult.finalOrder, drawResult.seedHex, { topK });
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.add("on");
+    return;
+  }
+
+  const n = game.n;
+
+  // Vị trí đứng theo chiều dọc, suy ra từ tên: một người luôn đứng cùng một chỗ.
+  const lane = new Float64Array(n);
+  for (let i = 0; i < n; i++) lane[i] = (hashCode(game.n + "|" + drawResult.finalOrder[i]) % 10000) / 10000;
+
+  // Thời điểm bay lên của từng người, xếp so le trong pha đèn đỏ.
+  const popAt = new Float64Array(n).fill(Infinity);
+  for (const r of game.schedule) {
+    r.eliminated.forEach((dog, k) => { popAt[dog] = r.impactSec + r.aimSec + k * r.stagger; });
+  }
+
+  // Mỗi hình nhân phụ trách một khúc đường đua; ai đứng gần thì người đó bắn.
+  const guardCount = Math.max(3, Math.min(7, Math.round(n / 22)));
+  const guards = [];
+  for (let i = 0; i < guardCount; i++) {
+    guards.push({ xFrac: (i + 0.5) / guardCount, recoil: 0, aimProg: (i + 0.5) / guardCount, aimLane: 0.5 });
+  }
+
+  const shooter = new Int32Array(n).fill(-1);
+  const popProg = new Float64Array(n);
+  for (let dog = 0; dog < n; dog++) {
+    if (!isFinite(popAt[dog])) continue;
+    popProg[dog] = game.progressOf(dog, popAt[dog]);
+    let best = 0;
+    let bd = Infinity;
+    for (let gi = 0; gi < guardCount; gi++) {
+      const d = Math.abs(popProg[dog] - guards[gi].xFrac);
+      if (d < bd) { bd = d; best = gi; }
+    }
+    shooter[dog] = best;
+  }
+
+  ctx.font = LABEL_FONT;
+  const nameW = new Float64Array(n);
+  for (let i = 0; i < n; i++) nameW[i] = ctx.measureText(drawResult.finalOrder[i]).width + 14;
+  const looks = assignLooks(drawResult.finalOrder);
+  const sprites = bakeAll(drawResult.finalOrder, looks, 2);
+
+  const pxBuf = new Float64Array(n);
+  const pyBuf = new Float64Array(n);
+  // Dùng lại đúng những đối tượng này mỗi khung hình. Dựng 150 đối tượng mới
+  // mỗi khung là nguyên nhân phổ biến nhất của "juice làm giật".
+  const candPool = [];
+  for (let i = 0; i < n; i++) candPool.push({ key: i, x: 0, y: 0, w: 0, h: LABEL_H, priority: 2 });
+  const cands = [];
+
+  state = {
+    drawResult, game, topK, lane, popAt, guards, shooter, popProg, nameW, pxBuf, pyBuf, candPool, cands,
+    paused: false,
+    looks, sprites,
+    colors: looks.map((l) => l.fur),
+    gameT: 0,
+    phase: "countdown",
+    freezeUntil: 0,
+    sinceFinalImpact: 0,
+    lastRoundImpact: 0,
+    facing: 0,          // 0 = quay lưng, 1 = quay mặt
+    flinch: 0,          // rung mình khi bị doạ quay
+    fired: new Set(),
+    beeped: -1,
+    countdownFrom: performance.now(),
+    last: performance.now(),
+  };
+
+  fx.flash = fx.shake = fx.punch = 0;
+  railKey = "";
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("podium").classList.remove("on");
+  document.getElementById("paused").classList.remove("on");
+  paintControls();
+  metaEl.innerHTML =
+    `<b>${game.rounds}</b> vòng · top <b>${topK}</b> · seed <b>${drawResult.seedHex.slice(0, 12)}…</b>`;
+  resize();
+  requestAnimationFrame(frame);
+}
+
+/** Khung va chạm: trọng tài quay hẳn mặt lại. Mọi kênh nổ trên cùng một tick. */
+function fireTurnImpact(victims) {
+  fx.flash = 0.75;
+  fx.shake = 1;
+  fx.punch = 1;
+  audio.tone({ freq: audio.vary(150), sweepTo: 48, dur: 0.4, type: "sine", gain: 0.28 });
+  audio.noise({ dur: 0.35, gain: 0.16, cutoff: 1800 });
+  // Im lặng đột ngột là vũ khí chính của cơ chế này. Hạ nền lâu hơn cả pha đèn đỏ.
+  music.duck(1.1 + victims * 0.085);
+  // Tiếng khoá mục tiêu: nổ ngay trên khung va chạm, trước phát đạn đầu tiên.
+  audio.tone({ freq: 1560, dur: 0.07, type: "square", gain: 0.09 });
+  audio.tone({ freq: 1560, dur: 0.07, type: "square", gain: 0.09, at: 0.1 });
+  buzz([25, 35, 70]);
+}
+
+function fireFinalImpact() {
+  fx.flash = 1;
+  fx.shake = 1;
+  fx.punch = 1;
+  audio.tone({ freq: audio.vary(190), sweepTo: 55, dur: 0.42, type: "sine", gain: 0.3 });
+  audio.noise({ dur: 0.5, gain: 0.2, cutoff: 2600 });
+  audio.tone({ freq: audio.vary(880), dur: 0.5, type: "triangle", gain: 0.1, at: 0.05 });
+  music.duck(1.6);
+  buzz([30, 40, 90]);
+}
+
+// =========================================================================
+function frame(now) {
+  const s = state;
+  if (!s) return;
+  const dtReal = Math.min(0.05, (now - s.last) / 1000);
+  s.last = now;
+
+  if (s.paused) {
+    render(now / 1000);
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  decayFx(dtReal);
+  music.tick(dtReal);
+
+  const g = s.game;
+
+  if (s.phase === "countdown") {
+    const elapsed = (now - s.countdownFrom) / 1000;
+    const left = Math.ceil(3 - elapsed);
+    cdEl.textContent = left > 0 ? String(left) : "ĐI!";
+    if (left !== s.beeped) {
+      s.beeped = left;
+      if (left > 0) audio.tone({ freq: audio.vary(520), dur: 0.1, type: "square", gain: 0.1 });
+      else {
+        audio.tone({ freq: audio.vary(1180), dur: 0.16, type: "square", gain: 0.13 });
+        music.start();
+      }
+    }
+    if (elapsed > 3.6) { s.phase = "play"; cdEl.textContent = ""; }
+
+  } else if (s.phase === "play") {
+    if (now / 1000 < s.freezeUntil) {
+      // đóng băng — đồng hồ lượt chơi đứng im, chỉ hiệu ứng chạy tiếp
+    } else {
+      const remain = g.totalSec - s.gameT;
+      const scale = remain <= FEEL.ANTICIPATION ? timeScaleAt("run", 0, remain) : 1;
+      const before = s.gameT;
+      s.gameT += dtReal * scale;
+
+      // Trọng tài vừa quay hẳn mặt lại?
+      for (const r of g.schedule) {
+        if (before < r.impactSec && s.gameT >= r.impactSec) {
+          s.freezeUntil = now / 1000 + FEEL.FREEZE;
+          s.lastRoundImpact = r.index;
+          fireTurnImpact(r.eliminated.length);
+          break;
+        }
+      }
+
+      if (s.gameT >= g.totalSec) {
+        s.gameT = g.totalSec;
+        s.phase = "finalImpact";
+        s.sinceFinalImpact = 0;
+        fireFinalImpact();
+      }
+    }
+
+  } else if (s.phase === "finalImpact") {
+    s.sinceFinalImpact += dtReal;
+    if (s.sinceFinalImpact >= FEEL.FREEZE) s.phase = "finalReaction";
+
+  } else if (s.phase === "finalReaction") {
+    s.sinceFinalImpact += dtReal;
+    if (s.sinceFinalImpact >= finishBeatDuration()) { s.phase = "done"; showPodium(); }
+  }
+
+  updateReferee(dtReal);
+  processShots(dtReal);
+  render(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+/**
+ * Hướng mặt của trọng tài và cú doạ quay.
+ *
+ * Cú doạ quay — giật đầu 25% rồi thôi — là thứ giữ căng thẳng trong pha đèn
+ * xanh. Không có nó thì đèn xanh chỉ là chờ đợi.
+ */
+function updateReferee(dtReal) {
+  const s = state;
+  const g = s.game;
+  const t = s.gameT;
+
+  let facing = 0;
+  let flinch = 0;
+
+  if (t >= g.sprintStartSec) {
+    facing = 0;                       // nước rút: trọng tài quay lưng hẳn, không bắt ai nữa
+  } else {
+    for (const r of g.schedule) {
+      const endOfRound = r.startSec + r.greenSec + r.turnSec + r.redSec;
+      if (t >= endOfRound) continue;
+
+      if (t < r.startSec + r.greenSec) {
+        if (r.fakeOutAt >= 0) {
+          const d = t - (r.startSec + r.fakeOutAt);
+          if (d >= 0 && d < 0.42) {
+            const u = d / 0.42;
+            facing = 0.25 * Math.sin(u * Math.PI);
+            flinch = Math.sin(u * Math.PI);
+          }
+        }
+      } else if (t < r.impactSec) {
+        facing = (t - r.startSec - r.greenSec) / r.turnSec;
+      } else {
+        facing = 1;
+      }
+      break;
+    }
+  }
+
+  s.facing += (facing - s.facing) * Math.min(1, dtReal * 22);
+  s.flinch = flinch;
+}
+
+function playPopSounds() {
+  const s = state;
+  for (let dog = 0; dog < s.game.n; dog++) {
+    if (s.gameT >= s.popAt[dog] && !s.sounded.has(dog)) {
+      s.sounded.add(dog);
+      const rank = s.game.roundOf(dog);
+      audio.tone({
+        freq: audio.vary(300 + (s.sounded.size % 7) * 55),
+        sweepTo: 1500, dur: 0.2, type: "triangle", gain: 0.09,
+      });
+      if (rank === s.game.rounds) audio.noise({ dur: 0.2, gain: 0.09, cutoff: 3200 });
+    }
+  }
+}
+
+// =========================================================================
+// =========================================================================
+//  Đội canh
+//
+//  Đứng thành hàng dọc mép trên sân, mỗi người phụ trách một khúc đường đua.
+//  Khi trọng tài quay mặt, họ khoá mục tiêu rồi bắn theo loạt.
+//
+//  Giữ ở dạng bóng đen cách điệu, không máu me, và cố tình KHÔNG dùng bộ đồng
+//  phục hồng cùng ba hình khối của bộ phim — đó là phần biểu đạt thuộc về người
+//  khác. Xem ghi chú ở GDD §14.
+// =========================================================================
+const GUARD_H = 74;
+const SHOT_VISIBLE = 0.1;   // giây vệt đạn còn nhìn thấy
+const RETICLE_PULSE = 7.5;
+
+function guardX(x0, x1, g) {
+  return x0 + (x1 - x0) * g.xFrac;
+}
+
+function drawGuard(x, y, recoil, aimX, aimY) {
+  const dx = aimX - x;
+  const dy = aimY - y;
+  const ang = Math.atan2(dy, dx);
+  const kick = recoil * recoil;
+
+  ctx.save();
+  ctx.translate(x - Math.cos(ang) * kick * 5, y - Math.sin(ang) * kick * 5);
+
+  ctx.fillStyle = "rgba(0,0,0,.35)";
+  ctx.beginPath();
+  ctx.ellipse(0, GUARD_H * 0.5 + 4, 17, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // nòng súng chĩa về mục tiêu
+  ctx.save();
+  ctx.rotate(ang);
+  ctx.strokeStyle = "#0b0f0c";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, 4);
+  ctx.lineTo(34 - kick * 6, 4);
+  ctx.stroke();
+  if (recoil > 0.55) {
+    const f = (recoil - 0.55) / 0.45;
+    ctx.fillStyle = `rgba(255,226,150,${f})`;
+    ctx.beginPath();
+    ctx.moveTo(34, 4);
+    ctx.lineTo(34 + 20 * f, 4 - 7 * f);
+    ctx.lineTo(34 + 26 * f, 4);
+    ctx.lineTo(34 + 20 * f, 4 + 7 * f);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.fillStyle = "#171d19";
+  ctx.strokeStyle = "rgba(0,0,0,.7)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(-13, -GUARD_H * 0.2, 26, GUARD_H * 0.7, 7);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, -GUARD_H * 0.34, 13, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // kính che mặt — điểm sáng duy nhất, để mắt bắt được hướng nhìn
+  ctx.fillStyle = recoil > 0.2 ? "#ffd166" : "#c9852a";
+  ctx.beginPath();
+  ctx.roundRect(-9, -GUARD_H * 0.38, 18, 7, 3);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/** Khung ngắm đỏ trên những người sắp bị bắn. Đây là đoạn chuẩn bị của loạt đạn. */
+function drawReticle(x, y, pulse) {
+  const r = 15 + Math.sin(pulse * RETICLE_PULSE) * 2.5;
+  ctx.save();
+  ctx.strokeStyle = "#e37a63";
+  ctx.lineWidth = 2;
+  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    ctx.beginPath();
+    ctx.moveTo(x + sx * r, y + sy * r - sy * 6);
+    ctx.lineTo(x + sx * r, y + sy * r);
+    ctx.lineTo(x + sx * r - sx * 6, y + sy * r);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawTracer(fromX, fromY, toX, toY, fade) {
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,214,130,${fade * 0.85})`;
+  ctx.lineWidth = 2 + fade * 1.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(fromX, fromY);
+  ctx.lineTo(toX, toY);
+  ctx.stroke();
+
+  ctx.fillStyle = `rgba(255,255,255,${fade})`;
+  ctx.beginPath();
+  ctx.arc(toX, toY, 4 + fade * 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * Xử lý loạt bắn: hồi súng, rung, và tiếng.
+ *
+ * Loạt đông thì các phát nằm sát nhau tới mức phát riêng từng tiếng sẽ thành
+ * một mớ ồn. Khi đó chỉ phát tiếng cho một phần số phát — tai vẫn nghe ra liên
+ * thanh, mà không vỡ tiếng.
+ */
+function processShots(dtReal) {
+  const s = state;
+  for (const g of s.guards) g.recoil = Math.max(0, g.recoil - dtReal / 0.16);
+
+  const roundIdx = s.game.roundAt(s.gameT);
+  const r = roundIdx > 0 ? s.game.schedule[roundIdx - 1] : null;
+  const soundEvery = r ? Math.max(1, Math.min(3, Math.ceil(0.045 / r.stagger))) : 1;
+
+  for (let dog = 0; dog < s.game.n; dog++) {
+    if (s.gameT < s.popAt[dog] || s.fired.has(dog)) continue;
+    s.fired.add(dog);
+
+    const gi = s.shooter[dog];
+    if (gi >= 0) {
+      s.guards[gi].recoil = 1;
+      s.guards[gi].aimProg = s.popProg[dog];
+      s.guards[gi].aimLane = s.lane[dog];
+    }
+
+    // Rung dồn lại theo từng phát: một loạt dày thành tiếng rền liên tục thay
+    // vì từng cú giật rời rạc.
+    fx.shake = Math.min(1, fx.shake + 0.14 * SHAKE_MOTION);
+
+    if (s.fired.size % soundEvery === 0) {
+      audio.noise({ dur: 0.075, gain: 0.12, cutoff: 5200 });
+      audio.tone({ freq: audio.vary(118), sweepTo: 58, dur: 0.085, type: "square", gain: 0.07 });
+    }
+  }
+}
+
+function render(nowSec) {
+  const s = state;
+  const g = s.game;
+  const W = cv.width, H = cv.height;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#0e120f";
+  ctx.fillRect(0, 0, W, H);
+
+  const sh = shakeAt(nowSec, fx.shake, SHAKE_MOTION);
+  const punch = 1 + 0.04 * fx.punch * fx.punch * MOTION;
+  ctx.setTransform(dpr * punch, 0, 0, dpr * punch, sh.x * dpr, sh.y * dpr);
+
+  const w = W / dpr / punch;
+  const h = H / dpr / punch;
+  const x0 = MARGIN_L;
+  const x1 = w - MARGIN_R;
+  const yTop = BAND_TOP;
+  const yBot = h - BAND_BOT;
+
+  drawField(x0, x1, yTop, yBot);
+
+  // --- chó
+  const bob = s.game.phaseAt(s.gameT) === "green" ? 1 : 0;
+
+  // Đám đông càng vơi thì chó càng to. Không phải để cho đẹp: biển tên trên lưng
+  // ở mức 150 người là quá nhỏ để đọc, và nó lớn dần đúng vào lúc từng cái tên
+  // bắt đầu quan trọng.
+  const aliveNow = g.survivorsAt(s.gameT);
+  const dogScale = Math.max(0.3, Math.min(0.72,
+    (0.62 - g.n * 0.0021) * (1 + 1.05 * (1 - aliveNow / g.n))));
+  for (let dog = 0; dog < g.n; dog++) {
+    const popT = s.popAt[dog];
+    const popped = s.gameT - popT;
+    if (popped > POP_SEC) continue;
+
+    const px = x0 + (x1 - x0) * g.progressOf(dog, s.gameT);
+    const py = yTop + (yBot - yTop) * s.lane[dog];
+    s.pxBuf[dog] = px;
+    s.pyBuf[dog] = py;
+    const wobble = bob * Math.sin(nowSec * 9 + dog * 1.7) * 2.2 * MOTION;
+    const shiver = s.flinch * Math.sin(nowSec * 44 + dog) * 1.6 * MOTION;
+
+    if (popped >= 0) {
+      const u = popped / POP_SEC;
+      ctx.globalAlpha = 1 - u * u;
+      drawDogSprite(px, py - u * 130 * MOTION, s.sprites[dog], dogScale * (1 + u * 0.5), -u * 2.4);
+      ctx.globalAlpha = 1;
+    } else {
+      drawDogSprite(px + shiver, py + wobble, s.sprites[dog], dogScale, 0);
+    }
+  }
+
+  // --- khung ngắm: chỉ hiện trong cửa sổ khoá mục tiêu, ngay trước loạt đạn
+  const roundIdx = g.roundAt(s.gameT);
+  if (roundIdx > 0) {
+    const r = g.schedule[roundIdx - 1];
+    if (s.gameT >= r.impactSec && s.gameT < r.impactSec + r.aimSec) {
+      for (const dog of r.eliminated) {
+        drawReticle(x0 + (x1 - x0) * s.popProg[dog], yTop + (yBot - yTop) * s.lane[dog], nowSec);
+      }
+    }
+  }
+
+  // --- vệt đạn, chỉ sống một khoảnh khắc
+  const guardY = yTop - 70;
+  for (let dog = 0; dog < g.n; dog++) {
+    const since = s.gameT - s.popAt[dog];
+    if (since < 0 || since > SHOT_VISIBLE) continue;
+    const gi = s.shooter[dog];
+    if (gi < 0) continue;
+    drawTracer(guardX(x0, x1, s.guards[gi]) + 18, guardY + 4,
+               x0 + (x1 - x0) * s.popProg[dog], yTop + (yBot - yTop) * s.lane[dog],
+               1 - since / SHOT_VISIBLE);
+  }
+
+  // --- đội canh
+  for (const gd of s.guards) {
+    drawGuard(guardX(x0, x1, gd), guardY, gd.recoil,
+              x0 + (x1 - x0) * gd.aimProg, yTop + (yBot - yTop) * gd.aimLane);
+  }
+
+  drawReferee(x1 + 108, (yTop + yBot) / 2, s.facing);
+
+  // --- HUD
+  const alive = g.survivorsAt(s.gameT);
+  survivorsEl.textContent = `${alive} / ${g.n} còn lại`;
+  updateLight();
+  renderRail(alive);
+  drawNameLabels(x0, x1, yTop, yBot);
+
+  flashEl.style.opacity = String(easeOutCubic(fx.flash) * 0.55);
+}
+
+/**
+ * Biển tên trên đầu từng người.
+ *
+ * Với 150 người thì không thể hiện hết: các biển chồng lên nhau thành một vệt
+ * mực và không đọc được cái nào, kể cả tên mình. Nên chúng được xếp theo thứ tự
+ * ưu tiên, đặt được cái nào thì đặt, cái nào đè lên cái đã đặt thì bỏ.
+ *
+ * Thứ tự ưu tiên:
+ *   0  người đang bị khoá mục tiêu — sắp bị bắn, phải đọc được tên
+ *   1  người sống sót khi đám đông đã mỏng
+ *   2  còn lại
+ *
+ * Đám đông càng vơi thì càng nhiều tên hiện ra, và chính điều đó là một nhịp.
+ */
+function drawNameLabels(x0, x1, yTop, yBot) {
+  const s = state;
+  const g = s.game;
+
+  // Ai đang bị khoá mục tiêu ngay lúc này
+  let aiming = null;
+  const roundIdx = g.roundAt(s.gameT);
+  if (roundIdx > 0) {
+    const r = g.schedule[roundIdx - 1];
+    if (s.gameT >= r.impactSec && s.gameT < r.impactSec + r.aimSec) aiming = r.eliminated;
+  }
+
+  const alive = g.survivorsAt(s.gameT);
+  const cands = s.cands;
+  cands.length = 0;
+
+  // Mọi con đã mang tên trên lưng rồi. Biển bay ở đây là lớp ĐỌC RÕ HƠN cho
+  // hai nhóm đáng chú ý nhất, không phải lớp duy nhất có tên.
+  for (let dog = 0; dog < g.n; dog++) {
+    if (s.gameT >= s.popAt[dog]) continue;   // đã bị bắn thì thôi
+    const targeted = aiming && aiming.indexOf(dog) >= 0;
+    if (!targeted && alive > 12) continue;
+    const c = s.candPool[dog];
+    c.x = s.pxBuf[dog];
+    c.y = s.pyBuf[dog] - 42;
+    c.w = s.nameW[dog];
+    c.priority = targeted ? 0 : 1;
+    cands.push(c);
+  }
+
+  const placed = placeLabels(cands, { padding: 3, out: placedOut });
+
+  ctx.font = LABEL_FONT;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const L of placed) {
+    ctx.fillStyle = L.priority === 0 ? "rgba(88,26,16,.92)" : "rgba(14,18,15,.82)";
+    ctx.beginPath();
+    ctx.roundRect(L.x - L.w / 2, L.y - LABEL_H / 2, L.w, LABEL_H, 4);
+    ctx.fill();
+    ctx.fillStyle = L.priority === 0 ? "#ffc9b8" : "#e4e9e0";
+    ctx.fillText(s.drawResult.finalOrder[L.key], L.x, L.y);
+  }
+}
+
+/** Về màn hình thiết lập giữa chừng. Mọi thiết lập vẫn nằm nguyên trong form. */
+/**
+ * Báo cho quản trò biết thiết lập đã sang tới nơi.
+ *
+ * Không có nó thì trang mở ra với các ô đã điền sẵn và không ai chắc chúng đến
+ * từ đâu — nhất là khi vừa đổi trò chơi và đang phân vân danh sách còn đúng không.
+ */
+function announceHandoff() {
+  const el = document.getElementById("took");
+  const n = Number(document.getElementById("n").value) || 0;
+  el.innerHTML = icon("people", 16) +
+    "<span>Đã nhận " + n + " người từ trang chọn trò chơi</span>";
+  el.classList.add("on");
+  setTimeout(() => el.classList.remove("on"), 3600);
+}
+
+function backToSetup() {
+  state = null;
+  music.stop();
+  document.getElementById("paused").classList.remove("on");
+  document.getElementById("podium").classList.remove("on");
+  document.getElementById("setup").style.display = "";
+}
+
+function togglePause() {
+  const s = state;
+  if (!s || s.phase === "done") return;
+  s.paused = !s.paused;
+  document.getElementById("paused").classList.toggle("on", s.paused);
+  paintControls();
+  if (s.paused) music.pause();
+  else music.resume();
+}
+
+function drawField(x0, x1, yTop, yBot) {
+  ctx.fillStyle = "#1a2620";
+  ctx.fillRect(x0 - 40, yTop - 30, x1 - x0 + 80, yBot - yTop + 60);
+
+  ctx.strokeStyle = "rgba(255,255,255,.05)";
+  ctx.lineWidth = 1.5;
+  for (let i = 1; i < 8; i++) {
+    const x = x0 + ((x1 - x0) * i) / 8;
+    ctx.beginPath();
+    ctx.moveTo(x, yTop - 30);
+    ctx.lineTo(x, yBot + 30);
+    ctx.stroke();
+  }
+
+  // vạch đích
+  const cell = (yBot - yTop + 60) / 12;
+  for (let i = 0; i < 12; i++) {
+    ctx.fillStyle = i % 2 ? "#f2f4ee" : "#20261f";
+    ctx.fillRect(x1 - 7, yTop - 30 + i * cell, 14, cell);
+  }
+}
+
+/**
+ * Vẽ một chú chó từ sprite đã nướng.
+ * Biển tên đứng thẳng kể cả khi thân đang xoay lúc bị bắn bay lên.
+ */
+function drawDogSprite(x, y, sp, scale, rot) {
+  const bw = sp.bodyW * scale;
+  const bh = sp.bodyH * scale;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.drawImage(sp.body, -bw / 2, -bh * 0.62, bw, bh);
+  ctx.restore();
+
+  const pw = sp.plateW * scale * 0.92;
+  const ph = sp.plateH * scale * 0.92;
+  ctx.drawImage(sp.plate, x - pw / 2, y + bh * 0.30, pw, ph);
+}
+
+/**
+ * Trọng tài. Quay lưng thì không thấy mặt; quay mặt thì lộ hai mắt.
+ * Cú quay được diễn tả bằng cách bóp bề ngang — rẻ và đọc ra ngay.
+ */
+function drawReferee(x, y, facing) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  const squish = Math.cos(facing * Math.PI) * 0.55 + 0.45;
+  ctx.save();
+  ctx.scale(squish < 0.18 ? 0.18 : squish, 1);
+
+  ctx.fillStyle = "rgba(0,0,0,.35)";
+  ctx.beginPath();
+  ctx.ellipse(0, 78, 46, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = facing > 0.5 ? "#f0be51" : "#c08a2a";
+  ctx.strokeStyle = "rgba(0,0,0,.6)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(-44, -20, 88, 96, 16);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, -34, 40, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // tai
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(sx * 34, -56, 12, 20, sx * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  if (facing > 0.5) {
+    ctx.fillStyle = "#16211b";
+    for (const sx of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(sx * 14, -38, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.roundRect(-9, -20, 18, 7, 3);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+function updateLight() {
+  const s = state;
+  const phase = s.game.phaseAt(s.gameT);
+  let cls = "green", text = "ĐI!";
+  if (phase === "turn") { cls = "turn"; text = "SẮP QUAY!"; }
+  else if (phase === "red") { cls = "red"; text = "ĐỨNG YÊN!"; }
+  else if (phase === "sprint") { cls = "green"; text = "VỀ ĐÍCH!"; }
+  else if (phase === "done") { cls = "green"; text = "XONG"; }
+  if (lightEl.dataset.k !== cls + text) {
+    lightEl.dataset.k = cls + text;
+    lightEl.className = cls;
+    lightEl.textContent = text;
+  }
+}
+
+/**
+ * Thanh tên chỉ hiện khi đám đông đã đủ mỏng.
+ *
+ * Với 150 người thì một danh sách tên là vô nghĩa. Khi còn dưới 13 người thì nó
+ * bật lên — và chính việc nó bật lên đã là một nhịp: cả phòng biết sắp tới lúc
+ * đọc được tên mình.
+ */
+function renderRail(alive) {
+  const s = state;
+  if (alive > 12) {
+    if (railKey !== "") { railKey = ""; railEl.classList.remove("on"); }
+    return;
+  }
+  const survivors = [];
+  for (let dog = 0; dog < s.game.n && survivors.length < alive; dog++) {
+    if (s.gameT < s.popAt[dog]) survivors.push(dog);
+  }
+  const key = survivors.join(",");
+  if (key === railKey) return;
+  railKey = key;
+
+  let html = '<div class="hd">Còn lại</div>';
+  for (const dog of survivors) {
+    html += `<div class="row${dog < s.topK ? " win" : ""}">` +
+            `<span class="r">${dog + 1}</span>` +
+            `<span class="sw" style="background:${s.colors[dog]}"></span>` +
+            `<span class="nm">${escapeHtml(s.drawResult.finalOrder[dog])}</span></div>`;
+  }
+  railEl.innerHTML = html;
+  railEl.classList.add("on");
+}
+
+const escapeHtml = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function showPodium() {
+  const s = state;
+  document.getElementById("podPrize").textContent = s.drawResult.prizeLabel || "(không đặt tên giải)";
+  let html = "";
+  for (let p = 0; p < s.topK && p < s.game.n; p++) {
+    html += `<div class="w" style="animation-delay:${(s.topK - 1 - p) * 0.24}s">` +
+            `<span class="rank">#${p + 1}</span>` +
+            `<span class="sw" style="width:14px;height:14px;border-radius:4px;background:${s.colors[p]}"></span>` +
+            `<span class="nm">${escapeHtml(s.drawResult.finalOrder[p])}</span></div>`;
+  }
+  document.getElementById("podList").innerHTML = html;
+  document.getElementById("podSeed").textContent = "seed " + s.drawResult.seedHex;
+  document.getElementById("podium").classList.add("on");
+  music.duck(0.9 + s.topK * 0.24);
+
+  const chord = [523.25, 659.25, 783.99];
+  for (let i = 0; i < Math.min(s.topK, 3); i++) {
+    audio.tone({ freq: chord[i], dur: 0.7, type: "triangle", gain: 0.11, at: (s.topK - 1 - i) * 0.24 });
+  }
+}
+
+// =========================================================================
+function analyze() {
+  const roster = buildRoster();
+  const topK = Math.max(1, Number(document.getElementById("k").value) || 3);
+  const prize = document.getElementById("prize").value;
+  const rep = document.getElementById("report");
+  try {
+    const d = draw(roster, prize);
+    const g = buildElimination(d.finalOrder, d.seedHex, { topK });
+    const rows = g.schedule.map((r) =>
+      `   ${String(r.index).padStart(2)}     ${String(r.survivorsAfter).padStart(4)}` +
+      `     ${String(r.eliminated.length).padStart(4)}     ${r.greenSec.toFixed(1).padStart(5)}s` +
+      `     ${r.fakeOutAt >= 0 ? "có" : "—"}`);
+    rep.textContent = [
+      `${g.n} người · top ${topK} · ${g.rounds} vòng · ${g.totalSec.toFixed(0)} giây`,
+      "",
+      "  vòng   còn lại   bị loại   đèn xanh   doạ quay",
+      ...rows,
+      "",
+      `  Nước rút bắt đầu ở giây ${g.sprintStartSec.toFixed(0)}`,
+      `  seed ${d.seedHex.slice(0, 24)}…`,
+    ].join("\n");
+    rep.classList.add("on");
+  } catch (e) {
+    rep.textContent = e.message;
+    rep.classList.add("on");
+  }
+}
+
+// =========================================================================
+document.getElementById("go").addEventListener("click", startGame);
+document.getElementById("analyze").addEventListener("click", analyze);
+// Icon vẽ bằng SVG path chứ không dùng emoji: emoji mỗi hệ điều hành vẽ một
+// kiểu và trên Windows chúng ra màu mè lạc hẳn khỏi bảng màu — thấy rõ nhất
+// đúng lúc phóng lên máy chiếu.
+// Sàn phản hồi khi chạm: một bộ nghe cho mọi thứ bấm được.
+audio.restoreMuted();
+installTapFeedback(audio, buzz);
+addEventListener("pointerdown", () => skipBoot(document.getElementById("veil")), { once: true });
+
+const muteBtn = document.getElementById("mute");
+const pauseBtn = document.getElementById("pause");
+function paintControls() {
+  muteBtn.innerHTML = icon(audio.muted ? "soundOff" : "soundOn", 17) +
+    "<span>" + (audio.muted ? "Tắt tiếng" : "Tiếng") + "</span>";
+  pauseBtn.innerHTML = icon(state && state.paused ? "play" : "pause", 17) +
+    "<span>" + (state && state.paused ? "Tiếp tục" : "Dừng") + "</span>";
+}
+document.getElementById("backLive").innerHTML = icon("back", 17) + "<span>Thiết lập</span>";
+const hubLink = document.getElementById("hubLink");
+hubLink.insertAdjacentHTML("afterbegin", icon("back", 16));
+
+// Mang thiết lập đang nhập dở về trang chọn trò chơi, để nó chuyển tiếp sang trò
+// được chọn tiếp theo. Đổi trò giữa buổi mà phải dán lại 150 tên là một cái bẫy
+// đúng vào lúc cả phòng đang nhìn.
+hubLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  hubLink.href = "index.html" + encodeHandoff({
+    count: Number(document.getElementById("n").value) || 0,
+    topK: Number(document.getElementById("k").value) || 3,
+    prize: document.getElementById("prize").value,
+    roster: document.getElementById("roster").value,
+  });
+  location.href = hubLink.href;
+});
+
+muteBtn.addEventListener("click", () => {
+  audio.setMuted(!audio.muted);
+  paintControls();
+});
+document.getElementById("again").addEventListener("click", () => {
+  const p = document.getElementById("prize");
+  p.value = p.value.replace(/ ?· lượt \d+$/, "") + " · lượt " + (1 + Math.floor(performance.now()) % 97);
+  startGame();
+});
+document.getElementById("back").addEventListener("click", backToSetup);
+document.getElementById("backLive").addEventListener("click", backToSetup);
+document.getElementById("pause").addEventListener("click", togglePause);
+
+// Phím tắt cho quản trò: giữa buổi lễ thì không ai muốn đi tìm nút bằng chuột.
+document.addEventListener("keydown", (e) => {
+  if (!state) return;
+  if (e.key === "Escape") { e.preventDefault(); backToSetup(); }
+  else if (e.code === "Space") { e.preventDefault(); togglePause(); }
+});
+const refreshRoster = wireRosterInput({
+  textarea: document.getElementById("roster"),
+  countInput: document.getElementById("n"),
+  infoEl: document.getElementById("rosterInfo"),
+});
+
+// Thiết lập đến từ trang chọn game — xem chú thích cùng chỗ ở race.template.html.
+if (applyHandoff(location.hash, {
+      roster: document.getElementById("roster"),
+      count: document.getElementById("n"),
+      topK: document.getElementById("k"),
+      prize: document.getElementById("prize"),
+    })) {
+  refreshRoster();
+  document.getElementById("go").focus();
+  announceHandoff();
+}
+paintControls();
+
+resize();
+music.refresh();
+})();
+</script>
+</body>
+</html>

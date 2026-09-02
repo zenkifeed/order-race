@@ -1,0 +1,1331 @@
+<title>Order Race GDD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300..600&display=swap">
+
+<style>
+/* ============================================================
+   TOKENS — night greyhound track: turf green, lure amber,
+   trap silks as categorical color. Light is the base set.
+   ============================================================ */
+:root{
+  --paper:#ecefe8;
+  --surface:#f7f8f4;
+  --surface-2:#e3e7dd;
+  --ink:#101613;
+  --ink-2:#414b44;
+  --ink-3:#6d776f;
+  --rail:#c8cec3;
+  --rail-2:#dde1d8;
+  --turf:#0f6b47;
+  --turf-soft:#d7e8de;
+  --lure:#c07d05;
+  --lure-fill:#f2c14e;
+  --danger:#a8331f;
+
+  --trap1:#cf3a26;
+  --trap2:#2a5fbf;
+  --trap3:#8b8f86;
+  --trap4:#2b2f2c;
+  --trap5:#dd8318;
+  --trap6:#0f6b47;
+
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Consolas,monospace;
+
+  --measure:70ch;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e120f;
+    --surface:#161b17;
+    --surface-2:#1e241f;
+    --ink:#e4e9e0;
+    --ink-2:#aab3a8;
+    --ink-3:#7d867d;
+    --rail:#2c332d;
+    --rail-2:#232922;
+    --turf:#48c390;
+    --turf-soft:#15382a;
+    --lure:#f0be51;
+    --lure-fill:#c99826;
+    --danger:#e37a63;
+
+    --trap1:#e56450;
+    --trap2:#6b93e0;
+    --trap3:#a8ada3;
+    --trap4:#8f978f;
+    --trap5:#eda44d;
+    --trap6:#48c390;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e120f;
+  --surface:#161b17;
+  --surface-2:#1e241f;
+  --ink:#e4e9e0;
+  --ink-2:#aab3a8;
+  --ink-3:#7d867d;
+  --rail:#2c332d;
+  --rail-2:#232922;
+  --turf:#48c390;
+  --turf-soft:#15382a;
+  --lure:#f0be51;
+  --lure-fill:#c99826;
+  --danger:#e37a63;
+
+  --trap1:#e56450;
+  --trap2:#6b93e0;
+  --trap3:#a8ada3;
+  --trap4:#8f978f;
+  --trap5:#eda44d;
+  --trap6:#48c390;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--turf);text-underline-offset:.18em;text-decoration-thickness:1px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--lure);outline-offset:3px}
+
+/* ============================================================
+   MASTHEAD
+   ============================================================ */
+.mast{
+  border-bottom:1px solid var(--rail);
+  background:var(--surface);
+}
+.mast-in{
+  max-width:1180px;margin:0 auto;
+  padding:clamp(32px,6vw,60px) clamp(20px,4vw,48px) clamp(26px,4vw,40px);
+}
+.silks{display:flex;gap:5px;margin-bottom:26px}
+.silks i{display:block;height:7px;width:44px;border-radius:2px}
+.silks i:nth-child(1){background:var(--trap1)}
+.silks i:nth-child(2){background:var(--trap2)}
+.silks i:nth-child(3){background:var(--trap3)}
+.silks i:nth-child(4){background:var(--trap4)}
+.silks i:nth-child(5){background:var(--trap5)}
+.silks i:nth-child(6){background:var(--trap6)}
+
+.eyebrow{
+  font-family:var(--f-mono);
+  font-size:11.5px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+h1{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 112,"wght" 800;
+  font-size:clamp(42px,8vw,86px);
+  line-height:.94;
+  letter-spacing:-.02em;
+  margin:12px 0 0;
+  text-wrap:balance;
+}
+h1 span{color:var(--turf)}
+.tagline{
+  font-size:clamp(18px,2.4vw,22px);
+  color:var(--ink-2);
+  max-width:52ch;
+  margin:20px 0 0;
+  line-height:1.5;
+}
+.mast-meta{
+  display:flex;flex-wrap:wrap;gap:10px 28px;
+  margin-top:30px;padding-top:22px;
+  border-top:1px solid var(--rail);
+  font-family:var(--f-mono);font-size:12px;
+  color:var(--ink-3);letter-spacing:.02em;
+}
+.mast-meta b{color:var(--ink-2);font-weight:500}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.wrap{
+  max-width:1180px;margin:0 auto;
+  padding:0 clamp(20px,4vw,48px) 120px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:36px;
+}
+@media (min-width:1080px){
+  .wrap{grid-template-columns:210px minmax(0,1fr);gap:60px;align-items:start}
+}
+
+/* TOC */
+.toc{
+  margin-top:40px;
+  font-family:var(--f-mono);font-size:12.5px;line-height:1.5;
+  border:1px solid var(--rail);border-radius:4px;
+  padding:18px 18px 20px;background:var(--surface);
+}
+@media (min-width:1080px){
+  .toc{position:sticky;top:28px;border:0;background:none;padding:0;
+       border-left:1px solid var(--rail);padding-left:18px;border-radius:0}
+}
+.toc-title{
+  letter-spacing:.16em;text-transform:uppercase;font-size:11px;
+  color:var(--ink-3);margin-bottom:12px;
+}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.toc a{color:var(--ink-2);text-decoration:none;display:flex;gap:9px}
+.toc a:hover{color:var(--turf)}
+.toc a b{color:var(--ink-3);font-weight:500;font-variant-numeric:tabular-nums}
+
+article{min-width:0;padding-top:8px}
+
+/* ============================================================
+   SECTIONS & TYPE
+   ============================================================ */
+section{padding-top:52px;scroll-margin-top:24px}
+section > p, section > ul, section > ol, section > .note{max-width:var(--measure)}
+
+h2{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 100,"wght" 700;
+  font-size:clamp(26px,3.4vw,36px);
+  line-height:1.12;letter-spacing:-.012em;
+  margin:8px 0 18px;text-wrap:balance;
+}
+h2 .num{
+  font-family:var(--f-mono);font-size:.44em;font-weight:500;
+  color:var(--turf);vertical-align:.5em;margin-right:.7em;
+  letter-spacing:.04em;
+}
+h3{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 92,"wght" 650;
+  font-size:19px;line-height:1.3;letter-spacing:.005em;
+  margin:38px 0 12px;
+}
+h4{
+  font-family:var(--f-mono);font-size:12px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  margin:28px 0 10px;
+}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 18px;padding-left:1.25em}
+li{margin-bottom:8px}
+li::marker{color:var(--turf)}
+strong{font-weight:600}
+code{
+  font-family:var(--f-mono);font-size:.84em;
+  background:var(--surface-2);padding:.13em .38em;border-radius:3px;
+  color:var(--ink);
+}
+.hr{height:1px;background:var(--rail);margin:56px 0 0;border:0}
+
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
+.note{
+  border-left:3px solid var(--turf);
+  background:var(--turf-soft);
+  padding:16px 20px;border-radius:0 4px 4px 0;
+  margin:22px 0;
+}
+.note p:last-child{margin-bottom:0}
+.note .lbl{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--turf);display:block;margin-bottom:6px;
+}
+.note.warn{border-left-color:var(--danger);background:var(--surface-2)}
+.note.warn .lbl{color:var(--danger)}
+
+/* fact grid */
+.facts{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:1px;background:var(--rail);
+  border:1px solid var(--rail);border-radius:4px;overflow:hidden;
+  margin:26px 0 8px;
+}
+.facts div{background:var(--surface);padding:14px 16px}
+.facts dt{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;
+}
+.facts dd{margin:0;font-size:15px;line-height:1.4;font-weight:500}
+
+/* tables */
+.tw{overflow-x:auto;margin:22px 0;border:1px solid var(--rail);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--surface)}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rail-2);vertical-align:top}
+thead th{
+  font-family:var(--f-mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);
+  background:var(--surface-2);border-bottom:1px solid var(--rail);
+  white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tier{
+  font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 7px;border-radius:99px;white-space:nowrap;
+  border:1px solid currentColor;
+}
+.t-light{color:var(--ink-3)}
+.t-med{color:var(--turf)}
+.t-heavy{color:var(--danger)}
+
+/* code */
+pre{
+  margin:20px 0;padding:18px 20px;overflow-x:auto;
+  background:var(--surface);border:1px solid var(--rail);border-radius:4px;
+  font-family:var(--f-mono);font-size:12.5px;line-height:1.65;
+  color:var(--ink-2);
+}
+pre b{color:var(--turf);font-weight:600}
+pre i{color:var(--ink-3);font-style:normal}
+pre em{color:var(--lure);font-style:normal;font-weight:500}
+
+/* two-layer diagram */
+.layers{
+  display:grid;gap:14px;margin:26px 0;
+  grid-template-columns:1fr;
+}
+@media (min-width:720px){.layers{grid-template-columns:1fr 44px 1fr}}
+.layer{
+  border:1px solid var(--rail);border-radius:5px;background:var(--surface);
+  padding:18px 20px;
+}
+.layer.a{border-top:3px solid var(--turf)}
+.layer.b{border-top:3px solid var(--lure-fill)}
+.layer h5{
+  margin:0 0 4px;font-family:var(--f-display);
+  font-variation-settings:"wdth" 96,"wght" 700;font-size:17px;
+}
+.layer .sub{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 12px;
+}
+.layer ul{margin:0;padding-left:1.1em;font-size:14.5px;line-height:1.5}
+.layer li{margin-bottom:6px}
+.joint{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;font-family:var(--f-mono);font-size:10px;color:var(--ink-3);
+  letter-spacing:.06em;
+}
+.joint span{transform:rotate(90deg);white-space:nowrap}
+@media (min-width:720px){.joint span{transform:none}}
+.joint em{font-style:normal;font-size:20px;color:var(--turf);line-height:1}
+
+/* timeline */
+.tl{list-style:none;margin:24px 0;padding:0;border-left:1px solid var(--rail);max-width:var(--measure)}
+.tl li{
+  position:relative;padding:0 0 22px 22px;margin:0;
+}
+.tl li::before{
+  content:"";position:absolute;left:-4.5px;top:9px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--paper);border:2px solid var(--turf);
+}
+.tl li.beat::before{background:var(--lure-fill);border-color:var(--lure)}
+.tl .t{
+  font-family:var(--f-mono);font-size:11.5px;font-weight:600;
+  color:var(--turf);letter-spacing:.05em;display:block;
+  font-variant-numeric:tabular-nums;
+}
+.tl .h{font-weight:600;display:block;margin-top:2px}
+.tl .d{color:var(--ink-2);font-size:15px;display:block;margin-top:2px}
+
+/* chart */
+.chart{
+  margin:26px 0;border:1px solid var(--rail);border-radius:5px;
+  background:var(--surface);padding:18px 16px 12px;overflow-x:auto;
+}
+.chart svg{display:block;min-width:560px;width:100%;height:auto}
+.chart .cap{
+  font-family:var(--f-mono);font-size:11px;color:var(--ink-3);
+  margin:10px 4px 4px;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px 20px;
+}
+.chart .cap b{font-weight:500;display:inline-flex;align-items:center;gap:7px;color:var(--ink-2)}
+.chart .cap i{width:16px;height:2.5px;display:block;border-radius:2px}
+.svg-label{font-family:var(--f-mono);font-size:10px;fill:var(--ink-3);letter-spacing:.06em}
+.svg-grid{stroke:var(--rail-2);stroke-width:1}
+.svg-beat{stroke:var(--rail);stroke-width:1;stroke-dasharray:3 4}
+
+/* lane chips */
+.lanes{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}
+.lane{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--f-mono);font-size:12px;
+  border:1px solid var(--rail);border-radius:99px;
+  padding:5px 13px 5px 6px;background:var(--surface);
+}
+.lane i{width:16px;height:16px;border-radius:50%;display:block}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+
+<header class="mast">
+  <div class="mast-in">
+    <div class="silks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="eyebrow">Game Design Document · Bản nháp v0.1</p>
+    <h1>Order <span>Race</span></h1>
+    <p class="tagline">Minigame quay thưởng dạng đua chó chibi 3D chạy trên trình duyệt — kết quả công bằng và kiểm chứng được, cuộc đua thì dàn dựng để hồi hộp đến giây cuối.</p>
+    <div class="mast-meta">
+      <span><b>Ngày</b> 02.09.2026</span>
+      <span><b>Tác giả</b> namdp</span>
+      <span><b>Engine</b> Unity 6 · WebGL · URP</span>
+      <span><b>Trạng thái</b> M0 đạt · 2 minigame đạt cửa kịch tính · chờ cửa hiệu năng</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc" aria-label="Mục lục">
+  <p class="toc-title">Mục lục</p>
+  <ol>
+    <li><a href="#s1"><b>01</b> Tóm tắt</a></li>
+    <li><a href="#s2"><b>02</b> Mục tiêu &amp; phi mục tiêu</a></li>
+    <li><a href="#s3"><b>03</b> Kịch bản một buổi</a></li>
+    <li><a href="#s4"><b>04</b> Cỗ máy công bằng</a></li>
+    <li><a href="#s5"><b>05</b> Lớp đạo diễn</a></li>
+    <li><a href="#s6"><b>06</b> Thể thức &amp; quản trò</a></li>
+    <li><a href="#s7"><b>07</b> Gamefeel &amp; juice</a></li>
+    <li><a href="#s8"><b>08</b> UI/UX &amp; màn hình</a></li>
+    <li><a href="#s9"><b>09</b> Art direction</a></li>
+    <li><a href="#s10"><b>10</b> Âm thanh</a></li>
+    <li><a href="#s11"><b>11</b> Kỹ thuật</a></li>
+    <li><a href="#s12"><b>12</b> Lộ trình</a></li>
+    <li><a href="#s13"><b>13</b> Rủi ro</a></li>
+    <li><a href="#s14"><b>14</b> SquidGame</a></li>
+    <li><a href="#s15"><b>15</b> Câu hỏi mở</a></li>
+  </ol>
+</nav>
+
+<article>
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <p class="eyebrow">Tổng quan</p>
+  <h2><span class="num">01</span>Tóm tắt</h2>
+  <p><strong>Order Race</strong> là một công cụ quay thưởng nội bộ được đóng gói thành một minigame đua chó. Người quản trò dán danh sách nhân sự vào, mỗi người biến thành một chú chó chibi mang tên mình, và cả phòng cùng xem một cuộc đua khoảng 40 giây để tìm ra top-K người trúng thưởng.</p>
+  <p>Điểm khác biệt với một cái vòng quay may mắn thông thường nằm ở chỗ: nó tách bạch rõ ràng <em>ai thắng</em> khỏi <em>cách kể lại chuyện ai thắng</em>. Thứ hạng do một bộ sinh số ngẫu nhiên công khai quyết định trước khi cửa chuồng mở, và bất kỳ ai trong phòng cũng tự tính lại được sau buổi. Cuộc đua nhìn thấy trên màn hình là một màn trình diễn được dàn dựng để đi tới đúng kết quả đó theo cách gay cấn nhất.</p>
+
+  <dl class="facts">
+    <div><dt>Thể loại</dt><dd>Công cụ quay thưởng / minigame trình diễn</dd></div>
+    <div><dt>Nền tảng</dt><dd>Unity WebGL, desktop browser</dd></div>
+    <div><dt>Người chơi</dt><dd>0 — chỉ có quản trò và khán giả</dd></div>
+    <div><dt>Quy mô</dt><dd>30 – 150 người / race</dd></div>
+    <div><dt>Thời lượng show</dt><dd>≈ 3 phút / lượt trao thưởng</dd></div>
+    <div><dt>Art direction</dt><dd>Chibi 3D, low-poly, màu tươi</dd></div>
+    <div><dt>Backend</dt><dd>Không bắt buộc (static hosting)</dd></div>
+    <div><dt>Ngôn ngữ</dt><dd>Tiếng Việt (i18n-ready)</dd></div>
+  </dl>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <p class="eyebrow">Định hướng</p>
+  <h2><span class="num">02</span>Mục tiêu &amp; phi mục tiêu</h2>
+
+  <h3>Bốn mục tiêu thiết kế</h3>
+  <ol>
+    <li><strong>Kết quả kiểm chứng lại được.</strong> Sau buổi lễ, bất kỳ ai cũng phải tự tính lại được thứ hạng từ những dữ liệu đã công bố, mà không cần tin lời ai. Điều này chặn được việc sửa kết quả ở khâu công bố. <em>Nó không chặn được việc biết trước kết quả</em> — xem §4.</li>
+    <li><strong>Kịch tính có kiểm soát.</strong> Mỗi race phải có tối thiểu một cú lội ngược dòng và một pha về đích sát nút ở đúng ranh giới top-K. Không được phép có race mà một con dẫn từ đầu tới cuối.</li>
+    <li><strong>Không setup.</strong> Từ lúc quản trò mở link tới lúc bấm xuất phát ≤ 60 giây, không cài đặt, không đăng nhập, không tài khoản.</li>
+    <li><strong>Ai cũng thấy mình trên màn hình.</strong> Ở quy mô 150 người thì không thể ai cũng lên hình suốt cuộc đua, nên tối thiểu: mỗi người thấy tên mình ít nhất một lần ở màn điểm danh, và tên phải đọc được từ cuối phòng họp. Người thua vẫn phải thấy vui vì đã "được ra sân".</li>
+  </ol>
+
+  <h3>Phi mục tiêu — những thứ cố tình không làm</h3>
+  <ul>
+    <li><strong>Không phải game để chơi.</strong> Không meta-progression, không tiền tệ, không unlock, không thành tích. Đây là một cái máy quay thưởng biết diễn.</li>
+    <li><strong>Không mô phỏng vật lý đua thật.</strong> Vật lý thật cho ra kết quả nhàm chán và không tái tạo được (xem §5).</li>
+    <li><strong>Không tài khoản, không backend bắt buộc.</strong> Có backend nghĩa là có nơi để nghi ngờ dữ liệu bị sửa. Toàn bộ chạy client-side.</li>
+    <li><strong>Không quá 150 người / race.</strong> Trần cứng, đã chốt ngày 02.09.2026. Toàn bộ ngân sách hiệu năng ở §11 tính theo đúng con số này, và một số cấu trúc dữ liệu được cấp phát cố định theo nó. Trên ngưỡng đó thì chia nhiều lượt, không nhồi thêm.</li>
+    <li><strong>Không hỗ trợ mobile ở MVP.</strong> Sản phẩm dùng trên máy chiếu; mobile chỉ cần xem được trang kiểm chứng kết quả.</li>
+  </ul>
+
+  <div class="note">
+    <span class="lbl">Nguyên tắc nền</span>
+    <p>Dàn dựng đường đua <strong>không phải</strong> gian lận: thứ hạng do thuật toán chốt xong trước khi cửa chuồng mở, phần dàn dựng chỉ quyết định <em>cách kể lại</em> nó. Điều bị cấm tuyệt đối là để bất kỳ tham số trình diễn nào ảnh hưởng ngược lại thứ hạng — kiến trúc hai lớp một chiều ở §4 tồn tại để bảo đảm điều đó bằng mã nguồn, không chỉ bằng lời hứa.</p>
+  </div>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <p class="eyebrow">Trải nghiệm</p>
+  <h2><span class="num">03</span>Kịch bản một buổi</h2>
+  <p>Đây là dòng thời gian mục tiêu cho một lượt trao giải, tính từ lúc quản trò cầm chuột. Mọi tính năng đề xuất về sau đều phải nhét vừa vào khung này.</p>
+
+  <ol class="tl">
+    <li>
+      <span class="t">−1 ngày</span>
+      <span class="h">Chuẩn bị danh sách</span>
+      <span class="d">Quản trò dán danh sách nhân sự từ Excel/Sheet vào ô nhập, lưu sẵn trong <code>localStorage</code>. Không cần làm lại ở mỗi buổi.</span>
+    </li>
+    <li>
+      <span class="t">0:00</span>
+      <span class="h">Mở link, chọn giải</span>
+      <span class="d">Chỉnh số lượng người trúng (top-K), loại trừ người đã trúng ở lượt trước nếu muốn.</span>
+    </li>
+    <li class="beat">
+      <span class="t">0:30</span>
+      <span class="h">Khoá danh sách</span>
+      <span class="d">Màn hình hiện mã băm danh sách và seed — từ giây này không thêm hay bớt được ai nữa. Hai con số này phải nằm lại trên màn hình suốt phần còn lại, vì đó là thứ khán giả cần để tự tính lại sau buổi lễ.</span>
+    </li>
+    <li>
+      <span class="t">1:00</span>
+      <span class="h">Điểm danh toàn sân</span>
+      <span class="d">Ở quy mô 150 người, không thể cho camera lướt qua từng chuồng — sẽ mất hơn hai phút. Thay bằng một màn điểm danh dạng lưới: các thẻ tên trôi qua màn hình khoảng 10 thẻ mỗi giây, ai cũng thấy tên mình lướt qua trong 15 giây, rồi cắt thẳng vào sân. Có nút Bỏ qua.</span>
+    </li>
+    <li>
+      <span class="t">1:20</span>
+      <span class="h">Đếm ngược 3 · 2 · 1</span>
+      <span class="d">Toàn bộ chó vào tư thế chuẩn bị, tiếng ồn khán đài dâng lên, ánh sáng sân tối bớt trừ vạch xuất phát.</span>
+    </li>
+    <li class="beat">
+      <span class="t">1:25 → 2:05</span>
+      <span class="h">Cuộc đua — 40 giây, 5 nhịp kịch tính</span>
+      <span class="d">Cửa chuồng bật, đàn chó lao đi. Diễn tiến được đạo diễn theo đường cong ở §5.</span>
+    </li>
+    <li class="beat">
+      <span class="t">2:05</span>
+      <span class="h">Photo finish</span>
+      <span class="d">Camera cắt sang góc ngang vạch đích, slow-mo 0.25×, đóng băng đúng khung hình chạm vạch của người ở hạng K.</span>
+    </li>
+    <li>
+      <span class="t">2:15</span>
+      <span class="h">Bục vinh danh &amp; công bố</span>
+      <span class="d">Top-K lên bục lần lượt từ hạng thấp đến hạng cao, mỗi lần một tràng pháo giấy. Tên hiển thị cỡ lớn.</span>
+    </li>
+    <li>
+      <span class="t">2:40</span>
+      <span class="h">Xuất kết quả</span>
+      <span class="d">Một nút duy nhất tạo ảnh PNG bảng kết quả kèm seed, và một file CSV đầy đủ thứ hạng để lưu trữ.</span>
+    </li>
+  </ol>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <p class="eyebrow">Cơ chế lõi</p>
+  <h2><span class="num">04</span>Cỗ máy công bằng</h2>
+  <p>Toàn bộ hệ thống được chia thành hai lớp không được phép nói chuyện ngược chiều. Lớp Kết quả quyết định thứ hạng và không biết gì về đồ hoạ. Lớp Trình diễn nhận thứ hạng như một dữ kiện bất biến và chỉ có quyền quyết định <em>cách</em> đi tới đó.</p>
+
+  <div class="layers">
+    <div class="layer a">
+      <h5>Lớp Kết quả</h5>
+      <p class="sub">Deterministic · kiểm chứng được</p>
+      <ul>
+        <li>Nhận: danh sách + seed công khai</li>
+        <li>Chạy: PRNG cố định + Fisher–Yates</li>
+        <li>Trả về: <code>finalOrder[]</code></li>
+        <li>Không import bất kỳ thứ gì từ Unity</li>
+        <li>Chạy lại được bằng JS thuần</li>
+      </ul>
+    </div>
+    <div class="joint" aria-hidden="true">
+      <em>→</em>
+      <span>một chiều</span>
+    </div>
+    <div class="layer b">
+      <h5>Lớp Trình diễn</h5>
+      <p class="sub">Đạo diễn · thẩm mỹ</p>
+      <ul>
+        <li>Nhận: <code>finalOrder[]</code> (chỉ đọc)</li>
+        <li>Dựng: đường cong tiến độ theo 5 nhịp</li>
+        <li>Ràng buộc: thứ tự về đích bất biến</li>
+        <li>Toàn bộ nhiễu cũng seed từ cùng seed</li>
+        <li>Có thể tua lại y hệt</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Seed đến từ đâu</h3>
+  <p>Seed được tính từ đúng hai thứ, cả hai đều được công bố công khai trong buổi lễ:</p>
+
+<pre><b>seed_hex</b> = SHA-256(
+    roster_hash          <i>// SHA-256 của danh sách đã chuẩn hoá, sắp xếp, nối bằng xuống dòng</i>
+  + "|" + prize_label    <i>// tên giải, đã chuẩn hoá</i>
+)</pre>
+
+  <ul>
+    <li><code>roster_hash</code> hiện lên màn hình lúc khoá danh sách — không thêm hay bớt được ai sau đó nữa.</li>
+    <li>Seed đầy đủ hiển thị trên màn hình đua và trên bảng kết quả, đồng thời nằm trong file CSV và ảnh PNG xuất ra.</li>
+    <li><strong>Cùng danh sách + cùng tên giải luôn cho cùng người thắng.</strong> Hệ quả bắt buộc: mỗi lượt quay trong một buổi phải mang tên giải khác nhau, nếu không lượt sau lặp lại y hệt lượt trước. Màn hình quản trò phải cảnh báo khi cặp (danh sách, tên giải) đã được quay rồi.</li>
+  </ul>
+
+  <div class="note warn">
+    <span class="lbl">Giới hạn đã biết và đã chấp nhận — quyết định ngày 02.09.2026</span>
+    <p>Vì cả hai đầu vào đều biết trước buổi lễ, <strong>bất kỳ ai có mã nguồn đều tính trước được người thắng</strong>. Bản thiết kế đầu tiên có thêm một chuỗi do khán giả đọc tại chỗ, đặt ở đó đúng để chặn điều này; chuỗi đó đã được gỡ theo yêu cầu, đổi lấy việc bớt một bước trong nghi thức.</p>
+    <p><strong>Điều còn giữ được:</strong> kết quả tái tạo được, nên không ai sửa được thứ hạng ở khâu công bố mà không bị phát hiện. <strong>Điều mất đi:</strong> không còn gì bảo đảm người vận hành hệ thống chưa biết trước kết quả. Tài liệu này ghi rõ giới hạn đó thay vì để nó ẩn đi, và trang kiểm chứng cũng nói thẳng như vậy với khán giả.</p>
+    <p>Nếu sau này muốn khôi phục bảo đảm đó, chỉ cần thêm lại một tham số vào <code>seed_hex</code> rồi nâng phiên bản thuật toán. Kiến trúc không phải đổi gì khác — đó chính là lý do lớp Kết quả được tách hẳn khỏi mọi thứ còn lại.</p>
+  </div>
+
+  <h3>Thuật toán xếp hạng</h3>
+  <p>Cố định, đơn giản, và phải viết được hai lần cho ra cùng một kết quả — một lần trong C#, một lần trong JS ở trang kiểm chứng.</p>
+
+<pre><i>// PRNG: xorshift128, số học 32-bit không dấu, có wrap</i>
+state[0..3] = 4 word đầu của seed_hex (big-endian, uint32)
+
+<b>next()</b>:
+  t = state[3]
+  s = state[0]
+  state[3]=state[2]; state[2]=state[1]; state[1]=s
+  t ^= t &lt;&lt; 11;  t ^= t &gt;&gt;&gt; 8
+  state[0] = t ^ s ^ (s &gt;&gt;&gt; 19)
+  return state[0]                     <i>// uint32</i>
+
+<i>// Xáo trộn: Fisher–Yates ngược, lấy chỉ số không lệch</i>
+<b>shuffle(list)</b>:
+  for i from len-1 downto 1:
+    j = <em>uniform(next, i+1)</em>       <i>// rejection sampling, KHÔNG dùng modulo</i>
+    swap(list[i], list[j])
+
+finalOrder = shuffle(roster_sorted)   <i>// index 0 = hạng 1</i></pre>
+
+  <div class="note warn">
+    <span class="lbl">Bẫy kỹ thuật — cập nhật sau khi cài đặt xong M0</span>
+    <p>Năm chỗ khiến C# và JS cho ra kết quả khác nhau. Hai chỗ cuối là <strong>phát hiện mới trong lúc viết M0</strong>, không nằm trong bản nháp đầu:</p>
+    <ol>
+      <li>Dịch phải có dấu và không dấu — JS phải dùng <code>&gt;&gt;&gt;</code>, C# phải ép <code>uint</code>.</li>
+      <li>Lấy chỉ số bằng <code>% n</code> gây lệch phân phối — bắt buộc dùng rejection sampling.</li>
+      <li>Thứ tự sắp xếp phải theo byte UTF-8, không theo locale tiếng Việt — hai phiên bản ICU khác nhau cho hai thứ tự khác nhau.</li>
+      <li><strong>Ngưỡng loại bỏ phải là <code>ulong</code> trong C#.</strong> Khi <code>n</code> chia hết 2<sup>32</sup> (n = 2, 4, 8…) thì ngưỡng đúng bằng 2<sup>32</sup>; ép về <code>uint</code> sẽ thành 0 và vòng lặp không bao giờ thoát. Bản JS không dính vì <code>Number</code> chứa được 2<sup>32</sup>.</li>
+      <li><strong>Không được dùng hàm cắt khoảng trắng có sẵn của hai ngôn ngữ.</strong> <code>String.trim()</code> của JS cắt BOM (U+FEFF), <code>string.Trim()</code> của C# thì không — và BOM lọt vào rất thường xuyên khi dán danh sách từ file. Tập ký tự khoảng trắng phải được liệt kê tường minh, giống hệt ở hai bên.</li>
+    </ol>
+  </div>
+
+  <h3>Chuẩn hoá tên — thêm sau khi cài đặt M0</h3>
+  <p>Trước khi băm bất cứ thứ gì, mỗi cái tên đi qua ba bước, theo đúng thứ tự này ở cả hai ngôn ngữ:</p>
+  <ol>
+    <li><strong>NFC.</strong> Tên dán từ Google Sheets, Excel và macOS có thể mang cùng một chữ ở hai dạng byte khác nhau — "ế" là U+1EBF, hoặc là "e" cộng hai dấu tổ hợp. Không chuẩn hoá thì hai người gõ cùng một cái tên cho ra hai mã băm khác nhau.</li>
+    <li><strong>Gộp mọi cụm khoảng trắng thành đúng một dấu cách.</strong> Dán từ Excel rất hay lẫn tab, khoảng trắng cứng và BOM vào giữa tên. Không gộp thì "Lê  A" và "Lê A" là hai người khác nhau trong mắt hệ thống.</li>
+    <li><strong>Cắt hai đầu</strong> theo đúng tập ký tự đã liệt kê ở bẫy số 5.</li>
+  </ol>
+  <p>Ba bước đó áp cho cả tên giải thưởng, nên quản trò gõ thừa dấu cách ở cuối cũng không đổi kết quả. Lưu ý chữ hoa chữ thường <em>vẫn</em> phân biệt: "Giải Nhất" và "giải nhất" là hai lượt quay khác nhau.</p>
+
+  <h3>Trang kiểm chứng</h3>
+  <p>Một trang HTML tĩnh riêng biệt, <code>verify.html</code>, viết bằng JS thuần, không phụ thuộc Unity, chưa tới 200 dòng, ai cũng đọc được mã nguồn. Dán danh sách và seed vào, nó in ra thứ hạng đầy đủ. Chính vì trang này mà kiến trúc là <strong>Unity WebGL cho phần trình diễn + một trang web thuần cho phần kiểm chứng</strong> — không phải chọn một trong hai.</p>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <p class="eyebrow">Cơ chế lõi</p>
+  <h2><span class="num">05</span>Lớp đạo diễn</h2>
+  <p>Nếu để vật lý và ngẫu nhiên runtime tự quyết, phần lớn cuộc đua sẽ có một con vọt lên sớm và giữ nguyên khoảng cách tới đích — đúng về mặt mô phỏng, nhưng chán về mặt xem. Lớp đạo diễn giải bài toán ngược: <em>đã biết ai về nhất, dựng đường đi nào để khán giả không đoán được điều đó cho tới giây thứ 30?</em></p>
+
+  <h3>Đường cong tiến độ</h3>
+  <p>Mỗi chú chó <code>i</code> có một hàm tiến độ <code>p_i(t) ∈ [0,1]</code>. Ràng buộc cứng:</p>
+  <ul>
+    <li><code>p_i(T) = 1 − rank_i × ε</code> — thứ tự về đích luôn khớp <code>finalOrder</code>.</li>
+    <li><code>p_i</code> liên tục và <code>|p_i′|</code> nằm trong dải tốc độ hợp lệ — không có chó dịch chuyển tức thời.</li>
+    <li>Mọi nhiễu đều lấy từ cùng <code>seed_hex</code> — cùng seed thì tua lại ra đúng cùng một trận đua.</li>
+  </ul>
+  <p>Đường cong = nền chung của cả đàn + nhiễu Perlin riêng từng con + các nhịp kịch tính áp đặt bên dưới.</p>
+
+  <div class="chart">
+    <svg viewBox="0 0 720 268" role="img" aria-label="Biểu đồ thứ hạng theo thời gian: người thắng đi từ hạng 6 xuống hạng 7 rồi vươn lên hạng 1 ở cuối, trong khi kẻ dẫn đầu giả giữ hạng 1 tới 75% chặng đường rồi tụt xuống hạng 4.">
+      <g class="svg-grid">
+        <line x1="44" y1="30" x2="704" y2="30"></line>
+        <line x1="44" y1="82.6" x2="704" y2="82.6"></line>
+        <line x1="44" y1="135.1" x2="704" y2="135.1"></line>
+        <line x1="44" y1="187.7" x2="704" y2="187.7"></line>
+        <line x1="44" y1="214" x2="704" y2="214"></line>
+      </g>
+      <g class="svg-beat">
+        <line x1="143" y1="22" x2="143" y2="222"></line>
+        <line x1="341" y1="22" x2="341" y2="222"></line>
+        <line x1="539" y1="22" x2="539" y2="222"></line>
+        <line x1="671" y1="22" x2="671" y2="222"></line>
+      </g>
+      <g class="svg-label">
+        <text x="36" y="34" text-anchor="end">#1</text>
+        <text x="36" y="86.6" text-anchor="end">#3</text>
+        <text x="36" y="139.1" text-anchor="end">#5</text>
+        <text x="36" y="218" text-anchor="end">#8</text>
+        <text x="93" y="240" text-anchor="middle">NHỊP 1</text>
+        <text x="242" y="240" text-anchor="middle">NHỊP 2</text>
+        <text x="440" y="240" text-anchor="middle">NHỊP 3</text>
+        <text x="605" y="240" text-anchor="middle">NHỊP 4</text>
+        <text x="688" y="240" text-anchor="middle">5</text>
+        <text x="44" y="260" text-anchor="start">t = 0s</text>
+        <text x="704" y="260" text-anchor="end">t = 40s</text>
+      </g>
+      <polyline fill="none" stroke="var(--lure-fill)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
+        points="44,56.3 143,30 242,30 341,30 440,30 539,56.3 638,82.6 704,108.9"></polyline>
+      <polyline fill="none" stroke="var(--turf)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"
+        points="44,161.4 143,161.4 242,187.7 341,135.1 440,82.6 539,56.3 638,56.3 704,30"></polyline>
+      <circle cx="704" cy="30" r="5" fill="var(--turf)"></circle>
+    </svg>
+    <p class="cap">
+      <b><i style="background:var(--turf)"></i>Người thắng thật</b>
+      <b><i style="background:var(--lure-fill)"></i>Kẻ dẫn đầu giả</b>
+      <span>Trục dọc là thứ hạng tại thời điểm đó, không phải khoảng cách.</span>
+    </p>
+  </div>
+
+  <h3>Năm nhịp</h3>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th class="mono">Nhịp</th><th class="mono">Khoảng</th><th>Nội dung</th><th>Ràng buộc</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">1</td><td class="mono">0 – 15%</td>
+          <td>Xuất phát cụm. Cả đàn bám nhau, thứ tự hoàn toàn ngẫu nhiên, chưa ai tách tốp.</td>
+          <td>Người thắng không được nằm trong top 3.</td>
+        </tr>
+        <tr>
+          <td class="mono">2</td><td class="mono">15 – 45%</td>
+          <td>Một <strong>kẻ dẫn đầu giả</strong> tách tốp rõ rệt, khán giả bắt đầu cổ vũ cho con đó.</td>
+          <td>Kẻ dẫn đầu giả phải có hạng cuối trong khoảng 4 – 8, đủ xa để cú tụt hạng gây bất ngờ.</td>
+        </tr>
+        <tr>
+          <td class="mono">3</td><td class="mono">45 – 75%</td>
+          <td>Xáo trộn nhóm giữa. Người thắng bắt đầu leo, đi từ nhóm giữa lên top 3.</td>
+          <td>Người thắng không được chạm hạng 1 trước mốc 80%.</td>
+        </tr>
+        <tr>
+          <td class="mono">4</td><td class="mono">75 – 95%</td>
+          <td>Thu hẹp. Hạng K và hạng K+1 bám nhau trong khoảng dưới một thân chó.</td>
+          <td>Đây là cặp đôi quyết định — camera phải khung được cả hai.</td>
+        </tr>
+        <tr>
+          <td class="mono">5</td><td class="mono">95 – 100%</td>
+          <td>Về đích. Slow-mo 0.25×, camera cắt sang góc ngang vạch đích, đóng băng ở khung chạm vạch.</td>
+          <td>Khoảng cách hạng 1 và hạng 2 dưới nửa thân chó ở 70% số lần đua.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Vì sao không mô phỏng thật</span>
+    <p>Ba lý do, xếp theo mức quan trọng: <strong>(1)</strong> kết quả không tái tạo được nên không kiểm chứng được — vi phạm mục tiêu số một; <strong>(2)</strong> mô phỏng thật cho ra phân phối kịch tính rất tệ, phần lớn race sẽ nhạt; <strong>(3)</strong> muốn ép nó kịch tính thì lại phải can thiệp — tức là quay về đúng lớp đạo diễn, chỉ khác là giấu nó đi thay vì viết ra trong tài liệu.</p>
+  </div>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <p class="eyebrow">Hệ thống</p>
+  <h2><span class="num">06</span>Thể thức &amp; bảng điều khiển quản trò</h2>
+  <p>Một race duy nhất cho toàn bộ danh sách, số người trúng do quản trò chỉnh tại chỗ. Không có vòng loại — nó kéo dài buổi lễ và làm loãng khoảnh khắc công bố.</p>
+
+  <h3>Tham số quản trò chỉnh được</h3>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Tham số</th><th class="mono">Mặc định</th><th>Ghi chú</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Số người trúng (K)</td><td class="mono">3</td><td>1 – 10. Chỉnh được ngay cả sau khi đã khoá danh sách, vì K không tham gia vào seed — thứ hạng đã cố định, K chỉ quyết định cắt ở đâu.</td></tr>
+        <tr><td>Loại trừ người đã trúng</td><td class="mono">bật</td><td>Nhớ trong phiên. Người bị loại trừ vẫn ra sân chạy cho vui nhưng không được tính hạng.</td></tr>
+        <tr><td>Thời lượng đua</td><td class="mono">40 s</td><td>30 – 60 s. Dưới 30 s không đủ chỗ cho 5 nhịp.</td></tr>
+        <tr><td>Tên giải thưởng</td><td class="mono">—</td><td>Vào seed và hiện trên bục vinh danh.</td></tr>
+        <tr><td>Chế độ hiển thị</td><td class="mono">tự động</td><td>Xem bảng bên dưới.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Xử lý quy mô 30 – 150</h3>
+  <p>Vì số người tối thiểu đã là 30, đường đua thẳng kiểu mỗi người một lane không còn khả thi ở bất kỳ mức nào — <strong>sân oval là chế độ duy nhất</strong>. Điều này thực ra làm gọn thiết kế: chỉ một bố cục sân, một bộ preset camera, một đường cong đạo diễn để tinh chỉnh.</p>
+  <p>Vấn đề thật ở quy mô này không phải đồ hoạ mà là <strong>đọc được</strong>: với 150 chú chó, con của bạn nằm ngoài khung hình gần như suốt cuộc đua. Ba tham số scale theo số người để giữ khả năng đọc:</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th class="mono">Số người</th><th class="mono">Render đầy đủ</th><th class="mono">Biển tên hiện</th><th>Camera</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">30 – 60</td><td class="mono">tất cả (LOD0/1)</td><td class="mono">top 12</td>
+          <td>Bám ngang cả tốp, trường nhìn rộng — vẫn nhìn thấy được cả đàn.</td>
+        </tr>
+        <tr>
+          <td class="mono">61 – 100</td><td class="mono">top 16</td><td class="mono">top 10</td>
+          <td>Bám nhóm dẫn đầu, tốp sau vào LOD2.</td>
+        </tr>
+        <tr>
+          <td class="mono">101 – 150</td><td class="mono">top 16</td><td class="mono">top 8</td>
+          <td>Bám chặt nhóm dẫn đầu; tốp sau bị nén khoảng cách về mặt thị giác để vẫn nằm trong khung hình thay vì biến mất khỏi sân.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Ở mọi mức, con nào vừa vượt hạng đều bật biển tên trong 1,5 giây rồi tắt — đây là cách rẻ nhất để người ở tốp giữa vẫn thấy tên mình xuất hiện vài lần trong 40 giây.</p>
+
+  <h3>Biển tên: xếp tránh đè, không chặn cứng theo số lượng</h3>
+  <p>Cột "biển tên hiện" ở bảng trên từng là một con số cố định — top 8, top 12. Con số đó là chọn bừa, và nó có nghĩa là hơn 140 người không bao giờ thấy tên mình. Cách làm hiện tại: <strong>duyệt theo thứ tự ưu tiên, đặt được biển nào thì đặt, biển nào đè lên biển đã đặt thì bỏ</strong>. Số tên đọc được tự co giãn theo mật độ thực tế thay vì bị chặn ở một con số.</p>
+  <ul>
+    <li><strong>Thứ tự duyệt phải ổn định</strong>, xếp theo thứ hạng chứ không theo toạ độ màn hình. Xếp theo toạ độ thì hai chú chó đi ngang qua nhau sẽ làm cả cụm biển tên nhấp nháy — có kiểm thử riêng cho đúng tình huống đó.</li>
+    <li>Ưu tiên cao nhất dành cho <strong>người đang bị khoá mục tiêu</strong> ở minigame §14: sắp bị bắn thì tên bắt buộc phải đọc được.</li>
+    <li>Đám đông càng vơi thì càng nhiều tên hiện ra — đo được: 150 người chen nhau thì đọc được khoảng một phần tư số tên, còn khi chỉ còn một phần mười số người thì gần như hiện đủ.</li>
+  </ul>
+
+  <h3>Thanh xếp hạng</h3>
+  <p>Với 150 dòng thì không thể liệt kê hết. Thanh dọc bên phải hiện <strong>K + 3 dòng</strong> quanh ranh giới trúng thưởng, cộng một dòng đếm "và 138 người khác". Ranh giới top-K được kẻ một vạch đỏ chạy ngang thanh — mắt khán giả bám vào đúng cái vạch đó, và đó chính là chỗ nhịp 4 ở §5 dựng pha bám đuổi.</p>
+
+  <div class="note">
+    <span class="lbl">Đề xuất tuỳ chọn — chưa nằm trong MVP</span>
+    <p>Ở mức 150 người, phần lớn khán giả sẽ không tìm được chó của mình. Một mã QR hiện ở màn hình chờ, dẫn tới một trang tĩnh nơi mỗi người gõ tên và thấy ngoại hình + số áo của chú chó mình, giải quyết chuyện đó với chi phí gần như bằng không — trang này dùng lại đúng hàm băm tên → ngoại hình ở §9, không cần backend. Đề xuất đưa vào M4 nếu buổi chạy thử cho thấy khán giả bị lạc.</p>
+  </div>
+
+  <div class="lanes">
+    <span class="lane"><i style="background:var(--trap1)"></i>Trap 1</span>
+    <span class="lane"><i style="background:var(--trap2)"></i>Trap 2</span>
+    <span class="lane"><i style="background:var(--trap3)"></i>Trap 3</span>
+    <span class="lane"><i style="background:var(--trap4)"></i>Trap 4</span>
+    <span class="lane"><i style="background:var(--trap5)"></i>Trap 5</span>
+    <span class="lane"><i style="background:var(--trap6)"></i>Trap 6</span>
+  </div>
+  <p>Bộ màu áo số mượn từ đua chó thật (6 màu trap tiêu chuẩn) và lặp lại theo chu kỳ, kết hợp với màu lông để mỗi chú chó vẫn phân biệt được bằng mắt ở khoảng cách xa.</p>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <p class="eyebrow">Cảm giác</p>
+  <h2><span class="num">07</span>Gamefeel &amp; juice</h2>
+  <p>Nguyên tắc duy nhất: mỗi hành động đáng cảm nhận đều phản hồi trên <strong>cả ba kênh</strong> — hình ảnh, âm thanh, và rung (khi có gamepad/mobile) — và được <strong>căn giờ theo khoảnh khắc va chạm, không phải khoảnh khắc kích hoạt</strong>. Nếu tiếng cửa chuồng bật ra sớm hơn hình 60ms, cả cuộc đua sẽ "cảm thấy sai" dù không ai chỉ ra được vì sao.</p>
+
+  <p>Cường độ được chia bậc. Nếu mọi thứ đều rung màn hình thì không có gì còn cảm giác lớn.</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Sự kiện</th><th class="mono">Bậc</th><th>Hình ảnh</th><th>Âm thanh</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Hover / bấm nút UI</td>
+          <td><span class="tier t-light">Nhẹ</span></td>
+          <td>Nút lún 2px, bật lại có overshoot</td>
+          <td>Blip ngắn, cao độ lệch ±3%</td>
+        </tr>
+        <tr>
+          <td>Camera lướt qua từng chuồng</td>
+          <td><span class="tier t-light">Nhẹ</span></td>
+          <td>Chó nhún người, tên trượt vào từ dưới</td>
+          <td>Một tiếng sủa, chọn ngẫu nhiên trong 5 mẫu</td>
+        </tr>
+        <tr>
+          <td>Đếm ngược 3 · 2 · 1</td>
+          <td><span class="tier t-med">Vừa</span></td>
+          <td>Số phóng to rồi co lại, ánh sáng sân tối dần</td>
+          <td>Beep lên cao độ dần, tiếng khán đài dâng</td>
+        </tr>
+        <tr>
+          <td>Cửa chuồng bật</td>
+          <td><span class="tier t-heavy">Mạnh</span></td>
+          <td>Đóng băng 90ms, chớp trắng, rung màn hình, bụi tung, camera giật lùi</td>
+          <td>Tiếng kim loại đập, còi hụ, khán đài bùng</td>
+        </tr>
+        <tr>
+          <td>Vượt hạng</td>
+          <td><span class="tier t-med">Vừa</span></td>
+          <td>Vệt mờ theo màu lông, tên con vượt nháy một nhịp, thanh xếp hạng đẩy dòng</td>
+          <td>Swoosh, cao độ theo hạng mới</td>
+        </tr>
+        <tr>
+          <td>Va chạm giữa hai chó</td>
+          <td><span class="tier t-light">Nhẹ</span></td>
+          <td>Cả hai bẹp rồi giãn, lệch hướng nhẹ</td>
+          <td>Bụp mềm</td>
+        </tr>
+        <tr>
+          <td>Vào đoạn nước rút</td>
+          <td><span class="tier t-med">Vừa</span></td>
+          <td>Trường nhìn camera mở rộng, vệt tốc độ ở rìa màn hình</td>
+          <td>Nhạc nền đổi tầng, trống dồn</td>
+        </tr>
+        <tr>
+          <td>Chạm vạch đích</td>
+          <td><span class="tier t-heavy">Mạnh</span></td>
+          <td>Slow-mo 0.25×, chớp, đóng băng 400ms tại khung chạm vạch, pháo giấy</td>
+          <td>Còi kết thúc, nhạc nền hạ tầng nhường, khán đài vỡ oà</td>
+        </tr>
+        <tr>
+          <td>Hiện tên người trúng</td>
+          <td><span class="tier t-heavy">Mạnh</span></td>
+          <td>Tên phóng vào có overshoot, tia sáng toả, ánh vàng quét ngang</td>
+          <td>Hợp âm thắng lợi, một cú "ting" trên mỗi ký tự đầu</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Ba quy tắc cứng</h3>
+  <ul>
+    <li><strong>Chỉ animate <code>transform</code> và <code>opacity</code> ở lớp UI.</strong> Rung và chớp không bao giờ được kích hoạt layout — 60fps là ngưỡng bắt buộc vì màn hình chiếu phóng to mọi khựng hình.</li>
+    <li><strong>Gom tài nguyên, không tạo mới mỗi khung hình.</strong> Số nổi, tên vượt hạng, hiệu ứng va chạm đều lấy từ pool. Với 150 chú chó, tạo texture mới mỗi lần vượt hạng sẽ làm sập frame rate ngay ở nhịp 3.</li>
+    <li><strong>Tôn trọng <code>prefers-reduced-motion</code>.</strong> Giảm biên độ chuyển động xuống ~0.45×, cắt rung màn hình mạnh nhất, nhưng <em>giữ nguyên âm thanh</em>. Không bao giờ tắt phản hồi về không.</li>
+  </ul>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 8 ============ -->
+<section id="s8">
+  <p class="eyebrow">Giao diện</p>
+  <h2><span class="num">08</span>UI/UX &amp; màn hình</h2>
+
+  <h3>Danh sách màn hình bắt buộc</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Màn hình</th><th>Vai trò</th><th>Điểm dễ làm sai</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Splash / tải</strong></td><td>Che thời gian tải WebGL, hiện logo, thanh tiến độ có phần trăm thật</td><td>Thanh tiến độ giả khiến 20 giây chờ cảm giác như một phút</td></tr>
+        <tr><td><strong>Chọn trò chơi</strong></td><td>Điểm vào thuần: bấm một thẻ là vào thẳng. Thiết lập nằm trong từng minigame, nhưng được mang theo khi đổi trò</td><td>Đây là màn hình duy nhất dùng <strong>theme sáng</strong> — xem lý do bên dưới bảng</td></tr>
+        <tr><td><strong>Sảnh chính</strong></td><td>Dán danh sách, chọn K, tên giải, nút Khoá danh sách</td><td>Nhồi quá nhiều tuỳ chọn; mọi thứ nâng cao đưa vào panel gập lại</td></tr>
+        <tr><td><strong>Khoá danh sách</strong></td><td>Hiện mã băm danh sách và seed, chốt danh sách lại</td><td>Cỡ chữ phải đủ lớn để đọc từ cuối phòng; phải cảnh báo nếu cặp (danh sách, tên giải) đã quay rồi</td></tr>
+        <tr><td><strong>Điểm danh toàn sân</strong></td><td>Lưới thẻ tên trôi qua, mỗi người thấy tên mình một lần</td><td>Phải bỏ qua được — quản trò cần nút Bỏ qua ở mọi cảnh</td></tr>
+        <tr><td><strong>Đua</strong></td><td>Camera đua, thanh xếp hạng, đồng hồ, seed hiển thị góc màn hình</td><td>Thanh xếp hạng che mất đàn chó khi cả hai cùng ở nửa phải</td></tr>
+        <tr><td><strong>Bục vinh danh</strong></td><td>Công bố top-K từ hạng thấp lên hạng cao</td><td>Công bố tất cả cùng lúc — mất hết cao trào</td></tr>
+        <tr><td><strong>Bảng kết quả</strong></td><td>Thứ hạng đầy đủ, seed, nút xuất PNG/CSV, nút Lượt tiếp theo</td><td>Không hiện seed ở đây thì mất luôn ý nghĩa kiểm chứng</td></tr>
+        <tr><td><strong>Điều khiển khi đang chạy</strong></td><td>Tạm dừng, quay lại thiết lập, tắt tiếng — luôn hiện ở góc màn hình, kèm phím tắt <code>Space</code> và <code>Esc</code></td><td>Giữa buổi lễ không ai muốn đi tìm nút bằng chuột; và phải quay lại thiết lập được giữa chừng chứ không chỉ sau khi đã công bố</td></tr>
+        <tr><td><strong>Cài đặt</strong></td><td>Âm lượng, giảm chuyển động, chất lượng đồ hoạ, ngôn ngữ</td><td>—</td></tr>
+        <tr><td><strong>Lỗi &amp; rỗng</strong></td><td>Danh sách rỗng, danh sách quá lớn, tên trùng, WebGL không hỗ trợ</td><td>Trạng thái rỗng phải chỉ ra bước tiếp theo, không phải chỉ báo lỗi</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Hai theme, có chủ đích</h3>
+  <p>Trang chọn trò chơi dùng <strong>theme sáng</strong>, các màn hình trò chơi dùng theme tối. Không phải cho khác nhau cho vui:</p>
+  <ul>
+    <li><strong>Trang chọn là màn hình làm việc.</strong> Quản trò mở nó lúc đèn phòng còn bật, ngồi đọc và gõ danh sách, thường trên laptop của mình chứ chưa chiếu lên tường. Nền sáng đọc chữ dễ hơn hẳn trong điều kiện đó.</li>
+    <li><strong>Các màn trò chơi là buổi diễn.</strong> Đèn tắt, chiếu lên tường, mọi người cùng nhìn. Nền tối làm màu của từng chú chó bật lên và không hắt sáng cả phòng.</li>
+  </ul>
+  <p>Ngôn ngữ hình ảnh thì vẫn là một: cùng viền mực dày, cùng đổ bóng cứng không mờ kiểu decal, cùng bộ màu sân đấu — chỉ lật nền. Bóng cứng và viền dày mới là thứ tạo ra cảm giác nhất quán, không phải màu nền.</p>
+
+  <h3>Quy tắc đọc được trên máy chiếu</h3>
+  <p>Đây là ràng buộc thiết kế đặc thù nhất của sản phẩm, và là thứ dễ bị bỏ quên nhất khi làm trên màn hình 27 inch cách mắt 60cm:</p>
+  <ul>
+    <li>Cỡ chữ nhỏ nhất trên màn hình đua ≥ <strong>2.2% chiều cao khung hình</strong>; tên người trúng ≥ 7%.</li>
+    <li>Mọi chữ đặt trên nền động phải có viền hoặc đổ bóng cứng — máy chiếu văn phòng có độ tương phản kém hơn màn hình rất nhiều.</li>
+    <li>Không dùng màu để mã hoá thông tin duy nhất — luôn kèm số hạng hoặc hình dạng, vì máy chiếu làm lệch màu và có người mù màu trong phòng.</li>
+    <li>Không có thông tin nào nằm trong 4% viền ngoài khung hình — máy chiếu thường cắt mép.</li>
+    <li><strong>Icon vẽ bằng SVG path, không dùng emoji.</strong> Emoji mỗi hệ điều hành vẽ một kiểu và trên Windows chúng ra màu mè lạc hẳn khỏi bảng màu — thấy rõ nhất đúng lúc phóng lên máy chiếu. SVG path còn nhận màu từ <code>currentColor</code> nên đổi theme là đổi màu theo.</li>
+  </ul>
+
+  <h3>Token thiết kế</h3>
+  <p>Kế thừa hệ màu áo số ở §6 làm bộ màu phân loại. Nền là xanh sân cỏ đêm dưới đèn pha, điểm nhấn là vàng hổ phách của con mồi giả. Đổ bóng cứng không blur cho mọi thẻ và nút, viền mực dày — cùng ngôn ngữ hình ảnh với đồ hoạ 3D ở §9 để UI và sân đua không nhìn như hai game khác nhau.</p>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 9 ============ -->
+<section id="s9">
+  <p class="eyebrow">Nghệ thuật</p>
+  <h2><span class="num">09</span>Art direction — chibi 3D</h2>
+  <p>Chibi low-poly, tỉ lệ đầu-thân khoảng 1:1.4, mắt to, chân ngắn, chuyển động nảy. Màu tô phẳng 1–2 tầng sáng, <strong>không</strong> gradient mềm, không viền sáng, không bóng bóng loáng — chỉ cần lỡ tay là art trôi sang phong cách RPG airbrush và mất hết chất vui nhộn.</p>
+
+  <h3>Mô hình &amp; hoạt ảnh</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Hạng mục</th><th class="mono">Chỉ tiêu</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>Mesh gốc</td><td class="mono">1 mesh duy nhất</td><td>Toàn bộ chó dùng chung một mesh và một rig — bắt buộc để chạy được 150 con</td></tr>
+        <tr><td>Số tam giác</td><td class="mono">≈ 2 000 (LOD0)</td><td>LOD1 ≈ 800, LOD2 ≈ 300 (dạng bảng phẳng cho tốp sau)</td></tr>
+        <tr><td>Xương</td><td class="mono">≤ 24</td><td>Ràng buộc của GPU skinning trên WebGL</td></tr>
+        <tr><td>Texture</td><td class="mono">1 atlas 1024²</td><td>Màu lông đổi bằng thuộc tính material, không phải bằng texture riêng</td></tr>
+        <tr><td>Bộ hoạt ảnh</td><td class="mono">7 clip</td><td><code>idle</code> · <code>bark</code> · <code>run</code> · <code>sprint</code> · <code>stumble</code> · <code>celebrate</code> · <code>sit</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Làm sao 150 con vẫn phân biệt được</h3>
+  <p>Bốn tầng nhận diện, nhân lại cho <strong>9 216 tổ hợp</strong>, tất cả suy ra từ tên người đó (băm tên → chỉ số) nên <strong>một người luôn có cùng ngoại hình ở mọi buổi</strong> — chi tiết nhỏ nhưng là thứ khiến mọi người nhớ "con chó của tôi":</p>
+  <ul>
+    <li><strong>Màu lông</strong> — 16 màu, tô phẳng. Đổi bằng thuộc tính instance, không tốn thêm texture hay draw call.</li>
+    <li><strong>Hoạ tiết</strong> — 8 kiểu: trơn, đốm, sọc, mảng, chân tất, mặt nạ, lưng yên, tai lệch. Chọn bằng chỉ số lớp trong atlas, cũng miễn phí về draw call.</li>
+    <li><strong>Phụ kiện</strong> — 12 món ở một slot trên đầu: mũ, khăn, kính, nơ… Đây là tầng duy nhất tốn draw call (xem §11).</li>
+    <li><strong>Màu áo số</strong> — 6 màu áo mượn từ đua chó thật (§6), lặp theo chu kỳ.</li>
+  </ul>
+  <p>Với 150 người rút từ 9 216 tổ hợp thì vẫn còn khoảng 1 – 2 cặp trùng ngoại hình theo nghịch lý ngày sinh. Xử lý lúc khoá danh sách: duyệt danh sách theo thứ tự byte, ai trùng với người đứng trước thì tăng chỉ số phụ kiện cho tới khi khác. Người đứng trước luôn giữ nguyên ngoại hình, nên chỉ một số rất ít người bị đổi khi danh sách thay đổi — đánh đổi có ý thức, ưu tiên tính ổn định hơn là tuyệt đối.</p>
+  <p><strong>Số áo và biển tên mới là thứ định danh thật.</strong> Biển tên luôn quay về camera, đặt cao hơn đầu, nền đục để đọc được trên mọi phông; số áo là duy nhất tuyệt đối trong một race. Ngoại hình chỉ là hương vị, không phải cơ chế tra cứu.</p>
+
+  <h3>Camera &amp; ánh sáng</h3>
+  <ul>
+    <li><strong>Ánh sáng:</strong> sân đêm dưới đèn pha. Một directional light chính lệch 40°, ambient xanh lạnh, đổ bóng vệt đơn giản dưới mỗi con — không dùng shadow map thật cho 150 đối tượng.</li>
+    <li><strong>Camera:</strong> bốn preset — lướt chuồng, bám ngang tốp, góc sau thấp ở đoạn nước rút, góc ngang vạch đích cho photo finish. Chuyển cảnh cắt cứng, không dolly, vì cắt đọc nhanh hơn trên máy chiếu.</li>
+    <li><strong>Khung hình:</strong> ở nhịp 4, camera tự động khung cả hạng K và K+1 — đây là ràng buộc gắn với thiết kế đạo diễn, không phải lựa chọn thẩm mỹ.</li>
+  </ul>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 10 ============ -->
+<section id="s10">
+  <p class="eyebrow">Âm thanh</p>
+  <h2><span class="num">10</span>Âm thanh</h2>
+  <ul>
+    <li><strong>Nền khán đài</strong> — một vòng lặp, âm lượng lái theo độ sát nút của tốp dẫn đầu. Khi hạng 1 và 2 gần nhau, đám đông to lên. Đây là kênh truyền kịch tính rẻ nhất và hiệu quả nhất.</li>
+    <li><strong>Nhạc</strong> — ba tầng chồng lên nhau: nền, nhịp, cao trào. Bật tầng theo nhịp đạo diễn thay vì làm ba bản nhạc riêng.</li>
+    <li><strong>Sủa</strong> — 5 mẫu, mỗi lần phát lệch cao độ ±8%. Tiếng sủa lặp y hệt gây khó chịu chỉ sau 10 lần.</li>
+    <li><strong>Hạ tầng nền ở khoảnh khắc lớn</strong> — khi về đích và khi công bố tên, nhạc nền hạ 6 dB trong 300 ms để tiếng còi và hợp âm thắng lợi nổi lên.</li>
+    <li><strong>Nút tắt tiếng luôn nhìn thấy được.</strong> Buổi lễ nào cũng có lúc cần tắt tiếng gấp, và lúc đó không ai đi tìm menu cài đặt.</li>
+  </ul>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 11 ============ -->
+<section id="s11">
+  <p class="eyebrow">Kỹ thuật</p>
+  <h2><span class="num">11</span>Kỹ thuật</h2>
+
+  <h3>Ngăn xếp &amp; ngân sách</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Hạng mục</th><th class="mono">Chỉ tiêu</th></tr></thead>
+      <tbody>
+        <tr><td>Engine / pipeline</td><td class="mono">Unity 6 LTS · URP · WebGL 2.0</td></tr>
+        <tr><td>Kích thước build</td><td class="mono">≤ 25 MB sau nén Brotli</td></tr>
+        <tr><td>Thời gian tải lần đầu</td><td class="mono">≤ 20 s trên đường truyền văn phòng</td></tr>
+        <tr><td>Khung hình</td><td class="mono">60 fps @ 1080p, GPU tích hợp, 150 chó</td></tr>
+        <tr><td>Draw call / khung hình</td><td class="mono">≤ 40</td></tr>
+        <tr><td>Cấp phát bộ nhớ khi đang đua</td><td class="mono">0 byte / khung hình</td></tr>
+        <tr><td>Heap WebGL</td><td class="mono">384 MB cố định (tắt memory growth)</td></tr>
+        <tr><td>Hosting</td><td class="mono">Tĩnh (GitHub Pages / S3 / nội bộ)</td></tr>
+        <tr><td>Lưu trữ</td><td class="mono">localStorage — danh sách, lịch sử người trúng, cài đặt</td></tr>
+        <tr><td>Trang kiểm chứng</td><td class="mono">HTML/JS thuần, tách riêng, không phụ thuộc build</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Mô hình dữ liệu</h3>
+<pre>{
+  "<b>version</b>": 2,
+  "<b>rosterHash</b>": "9f2c41ab…",         <i>// SHA-256 danh sách đã sort</i>
+  "<b>prizeLabel</b>": "Giải Nhất Quý 3",
+  "<b>seedHex</b>": "e71b0c…",             <i>// khoá kiểm chứng</i>
+  "<b>drawnAt</b>": "2026-09-02T15:04:00+07:00",
+  "<b>topK</b>": 3,
+  "<b>excluded</b>": ["Trần B"],
+  "<b>roster</b>": ["Lê A", "Nguyễn C", "Trần B", …],
+  "<b>finalOrder</b>": [                   <i>// index 0 = hạng 1</i>
+    { "name": "Nguyễn C", "rank": 1, "won": true  },
+    { "name": "Lê A",     "rank": 2, "won": true  },
+    …
+  ]
+}</pre>
+  <p>Đúng khối JSON này vừa là dữ liệu chạy trong game, vừa là nội dung xuất ra khi lưu trữ, vừa là thứ dán vào trang kiểm chứng. Một định dạng duy nhất, không có bản chuyển đổi ở giữa để lệch nhau.</p>
+
+  <h3>Hiệu năng — bài toán thật không phải 150 con chó</h3>
+  <p>150 nhân vật × 2 000 tam giác = 300 000 tam giác một khung hình. Với bất kỳ GPU nào sản xuất sau 2015, kể cả GPU tích hợp, con số đó là <em>không đáng kể</em>. Cái giết Unity WebGL không phải hình học, mà là <strong>chi phí trên mỗi GameObject</strong>: 150 đối tượng × (SkinnedMeshRenderer + Animator + TextMeshPro + cây Transform) là hơn 600 component có callback chạy mỗi khung hình, trên một luồng duy nhất, trong một trình duyệt không cho phép đa luồng.</p>
+  <p>Vì vậy hướng giải quyết không phải là "tối ưu vòng lặp", mà là <strong>không có GameObject nào cả</strong>. Đàn chó là một mảng dữ liệu phẳng, được vẽ bằng vài lệnh instancing. Đây là quyết định kiến trúc phải chốt ngay ở M1 — đổi về sau đồng nghĩa viết lại toàn bộ lớp render.</p>
+
+  <div class="note">
+    <span class="lbl">Trần 150 đã chốt — được phép cấp phát cố định</span>
+    <p>Vì trần là con số cứng chứ không phải ước lượng, mọi bộ đệm đều cấp phát một lần lúc khoá danh sách theo đúng kích thước 150 và không bao giờ giãn nữa. Điều này loại bỏ hẳn một nhóm rủi ro: không có <code>List</code> nào tự nhân đôi giữa cuộc đua, không có lần nạp lại texture nào, không có cú khựng do cấp phát.</p>
+    <p>Ba chỗ ăn theo con số này, và cả ba đều còn dư chỗ: atlas tên 2048² chứa được 256 ô (dùng 150); một lệnh <code>RenderMeshInstanced</code> chứa được 1 023 instance (dùng 150); buffer instance 40 byte × 150 = 6 KB. Nếu trần đổi, đây là ba nơi phải xem lại đầu tiên.</p>
+  </div>
+
+  <h4>Ngân sách draw call</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Thành phần</th><th>Cách vẽ</th><th class="mono">Draw call</th></tr></thead>
+      <tbody>
+        <tr><td>Thân chó (3 bậc LOD)</td><td><code>RenderMeshInstanced</code>, một lệnh mỗi bậc LOD</td><td class="mono">3</td></tr>
+        <tr><td>Phụ kiện</td><td>Instanced theo từng loại; loại nào không ai đội thì bỏ qua</td><td class="mono">≤ 12</td></tr>
+        <tr><td>Biển tên</td><td>Quad instanced, lấy UV từ atlas tên nướng sẵn</td><td class="mono">1</td></tr>
+        <tr><td>Bóng vệt</td><td>Quad instanced trên mặt sân</td><td class="mono">1</td></tr>
+        <tr><td>Sân, khán đài, môi trường</td><td>Static batching, toàn bộ dùng chung một atlas</td><td class="mono">≈ 8</td></tr>
+        <tr><td>Hiệu ứng hạt</td><td>Pool sẵn, một hệ thống cho mỗi loại</td><td class="mono">≈ 6</td></tr>
+        <tr><td>UI</td><td>Một canvas duy nhất, tách canvas động khỏi canvas tĩnh</td><td class="mono">≈ 6</td></tr>
+        <tr><td><strong>Tổng</strong></td><td>—</td><td class="mono"><strong>≤ 40</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Hoạt ảnh chạy trên GPU — bỏ hẳn Animator</h4>
+  <p>Bảy clip hoạt ảnh được nướng thành một texture ma trận xương ở khâu build. Mỗi instance chỉ mang theo một con số cho biết đang ở clip nào, khung nào; vertex shader tự đọc texture và biến dạng mesh. Không có <code>Animator</code>, không có <code>SkinnedMeshRenderer</code>, CPU gần như không làm gì.</p>
+<pre><i>// Kích thước texture ma trận xương</i>
+24 xương × 3 texel/xương          = <b>72 texel</b> mỗi khung hoạt ảnh
+7 clip @ 30fps ≈ 175 khung        = 175 × 72 = <b>12 600 texel</b>
+→ texture <em>128 × 128</em> RGBAHalf   = 16 384 texel  <i>(thừa chỗ)</i>
+→ dung lượng                       = <b>128 KB</b>
+
+<i>// Dữ liệu mỗi instance, gói vào một buffer duy nhất</i>
+float3 <b>position</b>  ·  float  <b>yaw</b>       <i>// 16 byte</i>
+float  <b>animFrame</b> ·  uint   <b>packedLook</b> <i>// 8  byte — màu lông, hoạ tiết, phụ kiện, màu áo</i>
+float4 <b>nameUV</b>                            <i>// 16 byte — ô của người này trong atlas tên</i>
+                                    <i>// tổng ≈ 40 byte</i>
+150 instance × 40 byte = <b>6 KB</b> nạp lên GPU mỗi khung hình → không đáng kể</pre>
+
+  <h4>Biển tên: nướng một lần, đúng lúc có quãng dừng</h4>
+  <p>150 nhãn văn bản trong không gian 3D là chỗ dễ giết frame rate nhất của toàn dự án. Giải pháp: dựng sẵn một atlas.</p>
+  <ul>
+    <li>150 tên × ô 256 × 64 px vào một atlas 2048 × 2048 → 8 cột × 32 hàng = 256 ô, thừa chỗ cho cả trần 150 người.</li>
+    <li>Dựng <strong>một lần duy nhất ở bước Khoá danh sách</strong> (§3). Bước này vốn đã có một quãng dừng tự nhiên trong kịch bản — chi phí giấu hoàn toàn vào đó, không ai thấy.</li>
+    <li>Lúc chạy: một quad instanced billboard cho toàn bộ 150 biển tên, đọc UV từ atlas. Một draw call.</li>
+    <li><strong>Cấm tuyệt đối</strong> đặt 150 TextMeshPro vào scene. Mỗi lần đổi text là một lần dựng lại mesh, và ở nhịp 3 thì hàng chục biển tên bật tắt cùng lúc.</li>
+  </ul>
+
+  <h4>Ngân sách khung hình — 16,6 ms ở 60 fps</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Hạng mục</th><th class="mono">Ngân sách</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>Cập nhật đạo diễn cho 150 instance</td><td class="mono">0,4 ms</td><td>Burst, không cấp phát, không LINQ</td></tr>
+        <tr><td>Chọn LOD + sắp thứ hạng</td><td class="mono">0,2 ms</td><td>Sắp xếp chèn trên mảng gần như đã sắp</td></tr>
+        <tr><td>Ghi và nạp instance buffer</td><td class="mono">0,3 ms</td><td>6 KB</td></tr>
+        <tr><td>Vẽ chó, phụ kiện, biển tên</td><td class="mono">4,0 ms</td><td>≤ 17 draw call</td></tr>
+        <tr><td>Sân, khán đài, môi trường</td><td class="mono">2,5 ms</td><td></td></tr>
+        <tr><td>Hiệu ứng hạt</td><td class="mono">2,0 ms</td><td>Overdraw là chi phí thật ở đây, không phải số lượng hạt</td></tr>
+        <tr><td>UI</td><td class="mono">1,5 ms</td><td></td></tr>
+        <tr><td><strong>Dự phòng</strong></td><td class="mono"><strong>5,7 ms</strong></td><td>Giữ 34% dự phòng — laptop văn phòng chạy pin, nhân đôi màn hình ra máy chiếu, và giảm xung sau 30 phút họp</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Bảy cái bẫy riêng của Unity WebGL</h4>
+  <ol>
+    <li><strong>Không có đa luồng.</strong> Burst biên dịch ra WASM SIMD nên vẫn nhanh, nhưng Job System chạy tuần tự. Mọi thứ nằm chung main thread với JS của trình duyệt.</li>
+    <li><strong>GC spike nhìn thấy rõ trên máy chiếu.</strong> Không cấp phát byte nào trong vòng lặp đua: pool tất cả, không LINQ, không nối chuỗi — đặc biệt là đồng hồ và số hạng, phải dựng từ buffer ký tự có sẵn.</li>
+    <li><strong>Không có compute shader</strong> trên WebGL 2.0. Culling và sắp hạng buộc phải làm trên CPU. Với 150 phần tử thì hoàn toàn ổn — nhưng đừng thiết kế bất cứ thứ gì dựa vào compute.</li>
+    <li><strong>Trần 1023 instance mỗi lệnh</strong> của <code>RenderMeshInstanced</code>. 150 lọt thoải mái trong một lệnh; đây là một lý do nữa để trần 150 là trần cứng.</li>
+    <li><strong>Nạp texture giữa lúc chạy gây khựng.</strong> Toàn bộ atlas tên nướng ở bước khoá danh sách, tuyệt đối không nướng giữa cuộc đua.</li>
+    <li><strong>WebAudio cần một cú chạm của người dùng mới phát được.</strong> Cú bấm "Khoá danh sách" là điểm mở khoá tự nhiên — khởi tạo audio ở đó. Nếu để tới lúc vào màn đua thì tiếng cửa chuồng sẽ câm ở lần chạy đầu tiên.</li>
+    <li><strong>Đặt heap cố định 384 MB, tắt memory growth.</strong> Growth luôn xảy ra đúng vào lúc không mong muốn nhất, và trên WebGL nó là một cú khựng thấy được.</li>
+  </ol>
+
+  <h4>Bài học đo được từ một trang tham chiếu</h4>
+  <p>Có một trang quay thưởng 3D cùng lĩnh vực chạy three.js trong trình duyệt, kiến trúc rất gần với thứ §11 này nhắm tới — và nó <strong>mở lên thấy lag</strong>. Đo lại được sáu nguyên nhân, cả sáu đều là ngân sách mà bản thiết kế này đã đặt ra sẵn. Ghi lại vì đây là bằng chứng thực tế chứ không phải suy đoán:</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Nguyên nhân đo được ở trang đó</th><th>Ngân sách của Order Race</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Mỗi biển tên một canvas + một texture + một material riêng.</strong> Với 150 người là 150 texture và 150 lệnh vẽ, lại còn <code>transparent</code> nên không gộp được.</td>
+          <td>Một atlas 2048², <strong>một lệnh vẽ</strong> cho toàn bộ biển tên, nướng một lần lúc khoá danh sách. Đây chính là chỗ §11 đã gọi là "dễ giết frame rate nhất của toàn dự án" — giờ có ví dụ sống.</td>
+        </tr>
+        <tr>
+          <td><strong>Chín nguồn sáng</strong> (5 điểm + 3 hướng + 1 bán cầu) trong forward rendering: shader chạy vòng lặp chín đèn cho mọi pixel của mọi vật thể.</td>
+          <td>Một directional + ambient. Số đèn là ngân sách cứng, không phải tuỳ chọn thẩm mỹ.</td>
+        </tr>
+        <tr>
+          <td><strong>Shadow map 2048² PCF mềm</strong> với rất nhiều vật đổ bóng — một lượt render riêng mỗi khung hình.</td>
+          <td>Không đổ bóng động. Bóng vệt phẳng dưới mỗi con, một lệnh vẽ instanced.</td>
+        </tr>
+        <tr>
+          <td><strong><code>antialias: true</code> cộng với post-processing.</strong> Composer render vào target riêng nên khử răng cưa trên framebuffer mặc định bị vứt đi — trả tiền mà không dùng.</td>
+          <td>Bật khử răng cưa <em>hoặc</em> post-processing, không bao giờ cả hai trên cùng một đường ống.</td>
+        </tr>
+        <tr>
+          <td><strong>Tỉ lệ điểm ảnh để tới 2</strong>, cộng bloom làm năm lượt thu nhỏ và năm lượt phóng to ở đúng độ phân giải đó.</td>
+          <td>Máy chiếu phòng họp là 1080p: khoá tỉ lệ điểm ảnh ở <strong>1</strong>. Không có lý do render 4× số điểm ảnh cho một thứ chiếu lên tường.</td>
+        </tr>
+        <tr>
+          <td><strong>1,27 MB JavaScript phải phân tích cú pháp</strong> trước khi vẽ được khung hình đầu tiên, tải tuần tự qua ba lượt khứ hồi và không có <code>modulepreload</code> nào.</td>
+          <td>Ngân sách 25 MB ở §11 là ngân sách <em>tải</em>. Bổ sung một ngân sách nữa: <strong>thời gian tới khung hình đầu tiên</strong> — vì Unity WebGL cũng phải phân tích và biên dịch WebAssembly trước khi hiện được gì, và đó là phần người dùng cảm nhận là "lag khi mở".</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <span class="lbl">Cùng loại lỗi đã tìm thấy trong chính mã của dự án này</span>
+    <p>Rà lại hai trang minigame bằng đúng sáu tiêu chí trên thì phát hiện hàm xếp biển tên đang <strong>cấp phát mỗi khung hình</strong>: một mảng 150 phần tử mới cộng vài chục đối tượng mới, khoảng 9 000 đối tượng mỗi giây ném cho bộ dọn rác. Nó không làm rớt khung hình ngay, nhưng đúng là loại chi phí âm thầm dồn lại thành "mở lên thấy lag".</p>
+    <p>Đã sửa: sắp xếp tại chỗ và dùng lại mảng kết quả, không cấp phát gì trong lúc chạy. Có phép kiểm riêng khẳng định phần tử trả về chính là phần tử đầu vào chứ không phải bản sao — để lần sau ai đó tiện tay viết <code>{...c}</code> thì bộ kiểm thử báo đỏ.</p>
+  </div>
+
+  <div class="note warn">
+    <span class="lbl">Cửa hiệu năng bắt buộc ở M1</span>
+    <p>Đo <strong>trên chính chiếc laptop sẽ dùng ở phòng họp</strong>, cắm máy chiếu, bật nhân đôi màn hình, và <em>chạy bằng pin</em> — laptop giảm xung khi rút sạc, và đó là điều kiện thật của buổi lễ. Cảnh đo chỉ có 150 khối hộp, chưa có đồ hoạ: nếu 150 khối hộp không đạt 60 fps thì mô hình chibi càng không.</p>
+    <p>Chỉ tiêu đạt: <strong>p99 frame time &lt; 20 ms</strong> suốt 60 giây liên tục, và không có khung hình nào vượt 50 ms. Nếu trượt, hạ trần xuống 100 người và chia lượt — <strong>quyết định đó phải ra ở M1, không phải ở M4</strong>, vì nó thay đổi cả kịch bản buổi lễ ở §3.</p>
+  </div>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 12 ============ -->
+<section id="s12">
+  <p class="eyebrow">Kế hoạch</p>
+  <h2><span class="num">12</span>Lộ trình</h2>
+  <p>Thứ tự các mốc được sắp xếp theo rủi ro chứ không theo độ hấp dẫn: phần dễ sai nhất và khó sửa nhất về sau được làm trước, đồ hoạ làm sau cùng.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">Mốc</th><th>Nội dung</th><th>Điều kiện hoàn thành</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono">M0</td>
+          <td><strong>Cỗ máy công bằng, không đồ hoạ</strong><br>PRNG + shuffle trong C# và JS, trang kiểm chứng, unit test đối chiếu hai môi trường</td>
+          <td><strong>ĐÃ ĐẠT</strong> (thuật toán <code>v2</code>) — 10 220 phép đối chiếu, không sai lệch. Bộ đối chiếu đã được kiểm bằng phép đột biến: đổi một phép dịch bit trong C# làm 10 120 phép so sánh báo đỏ.</td>
+        </tr>
+        <tr>
+          <td class="mono">M1</td>
+          <td><strong>Cuộc đua chạy được bằng hộp</strong><br>Lớp đạo diễn, 5 nhịp, camera cơ bản, và <strong>lớp render instanced đầy đủ</strong> — chó vẫn là khối hộp nhưng vẽ đúng bằng kiến trúc cuối cùng</td>
+          <td><strong>Cửa kịch tính ĐÃ ĐẠT</strong> — đo bằng máy trên 200 cuộc đua (8/20/45/90/150 chó): 0 lượt lộ người thắng trước mốc 80%, 0 chuyển động lùi, trung bình 4,5 lần đổi ngôi đầu, 100% lượt về đích sát nút. <strong>Cửa hiệu năng còn chờ</strong> — cần Unity project và đúng chiếc laptop sẽ dùng ở phòng họp.</td>
+        </tr>
+        <tr>
+          <td class="mono">M2</td>
+          <td><strong>Bảng điều khiển quản trò</strong><br>Nhập danh sách, khoá &amp; seed, chỉnh K, bảng kết quả, xuất PNG/CSV</td>
+          <td>Một người chưa từng thấy tool chạy trọn buổi mà không cần hướng dẫn</td>
+        </tr>
+        <tr>
+          <td class="mono">M3</td>
+          <td><strong>Đồ hoạ &amp; juice</strong><br>Mô hình chibi, hoạt ảnh, hệ nhận diện, âm thanh, toàn bộ bảng juice ở §7</td>
+          <td>Vẫn giữ nguyên cửa hiệu năng của M1 sau khi thay khối hộp bằng mô hình thật — nếu tụt, cắt bớt hiệu ứng chứ không cắt số người</td>
+        </tr>
+        <tr>
+          <td class="mono">M4</td>
+          <td><strong>Chạy thật &amp; hoàn thiện</strong><br>Thử với một buổi thật, sửa theo phản hồi, kiểm tra đọc được trên máy chiếu</td>
+          <td>Không có ai trong phòng hỏi "kết quả này có thật không"</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 13 ============ -->
+<section id="s13">
+  <p class="eyebrow">Rủi ro</p>
+  <h2><span class="num">13</span>Rủi ro &amp; cách xử lý</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Rủi ro</th><th>Cách xử lý</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Có người nghi kết quả bị sắp đặt.</strong> Rủi ro nghiêm trọng nhất — nó phá hỏng cả buổi lễ và không sửa được sau khi đã xảy ra. Sau khi gỡ chuỗi của khán giả (§4), rủi ro này <em>tăng lên</em> chứ không giảm.</td>
+          <td>Seed hiện trên màn hình suốt cuộc đua, trang kiểm chứng gửi kèm kết quả, mã nguồn thuật toán mở cho cả công ty đọc. Cách giảm rủi ro thật sự còn lại là <strong>minh bạch về quy trình</strong>: nói trước rằng thứ hạng do thuật toán chốt, chỉ cho mọi người trang kiểm chứng, và đừng để một người vừa giữ mã nguồn vừa là người bấm nút. Nếu thấy vẫn chưa đủ, khôi phục chuỗi của khán giả là việc sửa một dòng.</td>
+        </tr>
+        <tr>
+          <td><strong>Lộ chuyện đường đua được dàn dựng và bị hiểu nhầm là gian lận.</strong></td>
+          <td>Nói trước, đừng để bị phát hiện. Một câu trong phần giới thiệu: "thứ hạng đã chốt lúc lấy seed, cuộc đua là phần kể lại". Tài liệu này công khai trong team.</td>
+        </tr>
+        <tr>
+          <td><strong>WebGL tải chậm hoặc lỗi trên máy phòng họp.</strong></td>
+          <td>Mở sẵn và tải xong trước buổi lễ. Có phương án dự phòng: trang kiểm chứng tự nó đã quay được thưởng dạng văn bản, không cần đồ hoạ.</td>
+        </tr>
+        <tr>
+          <td><strong>Tên tiếng Việt có dấu hiển thị sai hoặc sort khác nhau giữa hai môi trường.</strong></td>
+          <td>Font có đầy đủ dấu tiếng Việt, kiểm tra ngay ở M0. Sort theo byte UTF-8 ordinal, đưa vào unit test đối chiếu.</td>
+        </tr>
+        <tr>
+          <td><strong>Trùng tên trong danh sách.</strong></td>
+          <td>Phát hiện ở bước dán danh sách, bắt quản trò phân biệt (thêm phòng ban) trước khi khoá. Không tự động thêm hậu tố — người bị đổi tên sẽ không nhận ra mình.</td>
+        </tr>
+        <tr>
+          <td><strong>Frame rate sập ở mốc 150 người.</strong> Rủi ro kỹ thuật lớn nhất, và là thứ chỉ lộ ra khi đã muộn nếu không đo sớm.</td>
+          <td>Kiến trúc không-GameObject và cửa hiệu năng ở §11, đo ngay từ M1 với 150 khối hộp trước khi có bất kỳ đồ hoạ nào. Pool toàn bộ hiệu ứng vượt hạng và giới hạn 6 hiệu ứng đồng thời — nhịp 3 là lúc nhiều con cùng đổi hạng nhất.</td>
+        </tr>
+        <tr>
+          <td><strong>150 người nhưng chỉ 8 biển tên hiện lên</strong> — phần lớn khán giả không bao giờ thấy chó của mình và mất hứng sau 15 giây.</td>
+          <td>Ba lớp bù: màn điểm danh toàn sân ở §3 đảm bảo ai cũng thấy tên mình một lần; biển tên bật 1,5 giây mỗi khi vượt hạng; và mã QR tra cứu ở §6 nếu buổi chạy thử cho thấy vẫn chưa đủ. Đây là rủi ro <em>trải nghiệm</em>, không phải kỹ thuật — và ở quy mô này nó nghiêm trọng ngang rủi ro frame rate.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 14 ============ -->
+<section id="s14">
+  <p class="eyebrow">Minigame thứ hai</p>
+  <h2><span class="num">14</span>SquidGame</h2>
+  <p>Một buổi lễ trao nhiều giải liên tiếp mà lượt nào cũng là đường đua thì tới lượt thứ ba đã hết bất ngờ. Minigame thứ hai dùng cơ chế đèn xanh đèn đỏ: trọng tài quay lưng thì cả đàn tiến lên, trọng tài quay mặt lại thì ai còn nhúc nhích bị loại. Loại dần cho tới khi còn đúng K người, rồi K người đó chạy nước rút về đích để phân hạng.</p>
+
+  <div class="note">
+    <span class="lbl">Về sở hữu trí tuệ</span>
+    <p><strong>Cơ chế</strong> đèn xanh đèn đỏ là trò chơi dân gian, không ai sở hữu — ở Việt Nam vẫn gọi là "một hai ba". Phần <strong>biểu đạt</strong> của bộ phim thì thuộc về người khác: tạo hình con búp bê, logo, bộ đồng phục hồng cùng ba hình khối, và bài hát.</p>
+    <p><strong>Quyết định ngày 03.09.2026:</strong> minigame này <strong>mang tên "SquidGame"</strong> theo yêu cầu, trong khi toàn bộ phần nhìn vẫn là art direction riêng của Order Race — trọng tài là một chú chó, đội canh là bóng đen với kính hổ phách, cùng bộ màu và ngôn ngữ hình ảnh với đường đua.</p>
+    <p><strong>Rủi ro còn lại, ghi ra để ai đọc sau cũng biết là đã cân nhắc:</strong> tên gọi biến liên hệ tới bộ phim từ ngầm hiểu thành nói thẳng, và "Squid Game" là nhãn hiệu đã đăng ký của Netflix. Với một công cụ nội bộ không bán, không quảng cáo, rủi ro pháp lý trên thực tế là nhỏ — nhưng ảnh chụp màn hình buổi lễ vẫn hay lan ra ngoài. Muốn hạ rủi ro về gần không thì chỉ cần đổi lại tên hiển thị; phần nhìn không phải sửa gì.</p>
+  </div>
+
+  <h3>Vì sao thể thức này hợp với quay thưởng</h3>
+  <p>Đường đua dồn toàn bộ cảm xúc vào hai giây cuối. Cơ chế loại dần thì rải cảm xúc ra cả lượt chơi: mỗi lần trọng tài quay mặt là một nhịp thót tim, và số người còn lại tụt dần trên màn hình là một đồng hồ đếm ngược tự nhiên. Với 150 người thì đây là thể thức cho nhiều khoảnh khắc hơn hẳn.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">Vòng</th><th class="mono">Còn lại</th><th class="mono">Bị loại</th><th class="mono">Đèn xanh</th><th>Nhịp</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">1</td><td class="mono">86</td><td class="mono">64</td><td class="mono">3,5 s</td><td>Cú sốc đầu tiên — hơn nửa số người ra ngay lượt một, cả phòng hiểu luật ngay lập tức.</td></tr>
+        <tr><td class="mono">2</td><td class="mono">49</td><td class="mono">37</td><td class="mono">4,6 s</td><td>Bắt đầu có cú doạ quay.</td></tr>
+        <tr><td class="mono">3</td><td class="mono">28</td><td class="mono">21</td><td class="mono">4,2 s</td><td></td></tr>
+        <tr><td class="mono">4</td><td class="mono">16</td><td class="mono">12</td><td class="mono">5,7 s</td><td>Đèn xanh dài dần — càng về sau càng phải nín thở lâu hơn.</td></tr>
+        <tr><td class="mono">5</td><td class="mono">9</td><td class="mono">7</td><td class="mono">4,9 s</td><td>Thanh tên bật lên: từ đây khán giả đọc được tên từng người còn lại.</td></tr>
+        <tr><td class="mono">6</td><td class="mono">5</td><td class="mono">4</td><td class="mono">5,7 s</td><td></td></tr>
+        <tr><td class="mono">7</td><td class="mono">3</td><td class="mono">2</td><td class="mono">6,8 s</td><td>Người thắng suýt bị bắt, rồi ba người còn lại chạy nước rút.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Bảng trên là một lượt thật với 150 người và top 3 — tổng 62 giây. Số vòng tự tính theo số người, nhắm mỗi vòng loại khoảng 43% số người còn lại.</p>
+
+  <h3>Vẫn là kiến trúc hai lớp một chiều</h3>
+  <p>Lớp này cũng chỉ đọc <code>finalOrder</code>, không bao giờ được sửa. Ánh xạ từ thứ hạng sang thứ tự bị loại là bắt buộc và duy nhất:</p>
+  <ul>
+    <li><strong>Người hạng r bị loại ở đúng vòng mà số người sống sót tụt xuống dưới r+1.</strong> Hạng càng cao càng bị loại muộn; K người sống tới cuối chính là top-K.</li>
+    <li>Trong một vòng, <em>thứ tự bay lên</em> của những người bị loại được xáo trộn cho đỡ đoán được — nhưng <em>tập</em> người bị loại thì tuyệt đối không đổi.</li>
+    <li>Luồng ngẫu nhiên của lớp này dẫn xuất riêng từ seed, nên chỉnh tham số trình diễn không bao giờ đổi được người thắng. Có kiểm thử riêng cho điều đó.</li>
+  </ul>
+
+  <h3>Ba nhịp giữ căng thẳng</h3>
+  <ul>
+    <li><strong>Im lặng đột ngột.</strong> Đúng khoảnh khắc trọng tài quay hẳn mặt lại, nhạc nền bị hạ mạnh và giữ suốt pha đèn đỏ. Đây là kênh mạnh nhất của cơ chế này — mạnh hơn bất cứ hiệu ứng hình ảnh nào.</li>
+    <li><strong>Cú doạ quay.</strong> Giữa pha đèn xanh, trọng tài giật đầu 25% rồi thôi. Không loại ai, chỉ để cả phòng thót tim. Mọi lượt chơi đều được bảo đảm có ít nhất một cú — nó là nhịp đặc trưng, không phải phần thưởng may rủi.</li>
+    <li><strong>Suýt bị bắt.</strong> Ở ba vòng cuối, một người sống sót loạng choạng rồi kịp dừng. Người thắng luôn dính một lần ở vòng cuối — cả phòng cần một lần hụt hẫng trước khi biết kết quả.</li>
+  </ul>
+
+  <div class="note warn">
+    <span class="lbl">Đánh đổi đã chọn</span>
+    <p>Người bị loại <em>bị đội canh bắn</em>, rồi bật lên cao và biến mất kèm tiếng "pop" kiểu hoạt hình. Ghép hai thứ này là có chủ ý: loạt đạn mang lại lực và căng thẳng, còn phản ứng kiểu hoạt hình giữ cho hình ảnh không nặng nề — không máu me, không ai nằm lại trên sân.</p>
+    <p>Bản đầu chỉ có cú bật lên, không có đội canh, và nó <strong>quá nhẹ</strong> so với thứ mà cơ chế này sống nhờ. Ba kênh bù trợ vẫn giữ nguyên: im lặng đột ngột, nhạc tăng tốc dần qua từng vòng, và bộ đếm người sống sót cỡ lớn tụt dần trên màn hình.</p>
+  </div>
+
+  <h3>Đội canh</h3>
+  <p>Một hàng hình nhân đứng dọc mép trên sân, mỗi người phụ trách một khúc đường đua; ai bị loại thì người đứng gần nhất bắn. Ba chi tiết làm nên nhịp của loạt đạn:</p>
+  <ul>
+    <li><strong>Cửa sổ khoá mục tiêu 0,22 giây.</strong> Ngay khi trọng tài quay hẳn mặt lại, khung ngắm đỏ hiện trên những người sắp bị bắn kèm hai tiếng bíp, rồi mới tới phát đạn đầu tiên. Đây là đoạn chuẩn bị của mỗi loạt — không có nó thì loạt đạn nổ ra không báo trước và mất hẳn phần thót tim.</li>
+    <li><strong>Trần 2,2 giây cho một loạt.</strong> Vòng đầu với 150 người loại tới 64 người cùng lúc; giữ nguyên nhịp bắn thưa thì loạt đó kéo 5,4 giây và biến thành từng phát rời rạc lê thê. Loạt đông thì bắn dày hơn, đúng như súng thật.</li>
+    <li><strong>Rung dồn theo từng phát.</strong> Mỗi phát cộng thêm một chút rung màn hình thay vì một cú giật riêng, nên loạt dày đọc ra thành tiếng rền liên tục. Khi loạt quá dày thì chỉ một phần số phát được phát tiếng — tai vẫn nghe ra liên thanh mà không vỡ tiếng.</li>
+  </ul>
+  <p>Về hình ảnh: bóng đen cách điệu với kính che mặt màu hổ phách theo đúng bộ màu Order Race. <strong>Cố tình không dùng bộ đồng phục hồng cùng ba hình khối của bộ phim</strong> — đó là phần biểu đạt thuộc về người khác, và màn hình buổi lễ thì hay bị chụp lại.</p>
+
+  <h3>Cửa kịch tính</h3>
+  <p><strong>ĐÃ ĐẠT</strong> — đo bằng máy trên 200 lượt chơi (8/20/45/90/150 người), 16 ràng buộc: người sống sót cuối cùng luôn đúng top-K, hạng càng cao càng bị loại muộn, không vòng nào loại 0 người, không có chuyển động lùi, người bị loại đứng im tại chỗ, những người vào nước rút xuất phát ngang hàng, và mọi lượt đều có cú doạ quay.</p>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 14 ============ -->
+<section id="s15">
+  <p class="eyebrow">Cần chốt</p>
+  <h2><span class="num">15</span>Câu hỏi mở</h2>
+  <ol>
+    <li><strong>Chiếc laptop nào sẽ chạy ở phòng họp?</strong> Cửa hiệu năng ở §11 phải đo trên đúng máy đó, không phải trên máy phát triển. Cần biết cấu hình trước M1 để không dựng ngân sách khung hình dựa trên phần cứng sai.</li>
+    <li><strong>Một buổi lễ quay mấy lượt?</strong> Nếu nhiều lượt liên tiếp, màn điểm danh toàn sân ở §3 nên bỏ từ lượt thứ hai — 15 giây × 5 lượt là một phút rưỡi lặp lại đúng một nội dung.</li>
+    <li><strong>Có cần chế độ chạy thử với danh sách giả không?</strong> Để diễn tập và để quay video giới thiệu, cần sinh 150 tên giả bằng một cú bấm. Rẻ, nhưng phải nhớ khoá không cho nó xuất hiện trong bản dùng thật.</li>
+    <li><strong>Có cần chiếu lại một race cũ không?</strong> Kiến trúc đã hỗ trợ sẵn — cùng seed cho ra cùng cuộc đua — nhưng cần một màn hình để nhập seed cũ vào.</li>
+    <li><strong>Mức độ tuỳ biến thương hiệu?</strong> Logo trên biển quảng cáo quanh sân là rẻ; đổi toàn bộ bộ màu theo brand thì phải chốt trước M3, vì hệ nhận diện chó ở §9 phụ thuộc vào bộ 16 màu lông.</li>
+  </ol>
+</section>
+
+</article>
+</div>

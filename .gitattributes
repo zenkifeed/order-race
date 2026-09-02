@@ -1,0 +1,12 @@
+# Kho lưu LF, checkout LF trên mọi máy.
+# Dự án chạy node + dotnet trên cả Windows lẫn máy khác; để git tự đổi CRLF
+# thì mỗi lần ai đó clone là cả 46 file hiện ra như vừa bị sửa.
+* text=auto eol=lf
+
+# Nhị phân, đừng đụng vào
+*.png binary
+*.jpg binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.m4a binary

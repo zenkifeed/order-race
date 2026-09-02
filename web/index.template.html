@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Order Race — chọn trò chơi</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME SÁNG
+   Cùng bảng màu sân đấu ở GDD nhưng lật sáng: nền ngả xanh cỏ thay vì đen,
+   viền mực gần đen ngả xanh, và đổ bóng cứng không mờ kiểu decal dán.
+   Bóng cứng + viền dày mới là thứ tạo ra cảm giác "sticker", không phải màu.
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#eef2ea;  --surface:#ffffff;  --surf-2:#e2ebdd;
+  --ink:#12211a;    --ink-2:#465449;    --ink-3:#6f7d72;
+  --line:#c7d3c5;
+  --turf:#0f7a4f;   --lure:#dd9c0c;     --danger:#bf432a;
+
+  --shadow:0 5px 0 var(--ink);
+  --shadow-lg:0 7px 0 var(--ink);
+
+  /* Không bao giờ dùng easing tuyến tính. */
+  --ease-pop:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-snap:cubic-bezier(.5,0,.1,1);
+}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right))
+          max(28px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+}
+.ic{display:block;flex:none}
+.wrap{max-width:880px;margin:0 auto}
+
+/* ── đầu trang ───────────────────────────────────────────────────────── */
+header{margin:8px 0 30px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .mark{
+  width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  background:var(--turf);color:#fff;border:2.5px solid var(--ink);box-shadow:var(--shadow);
+}
+h1{font-size:clamp(26px,4.6vw,38px);line-height:1.05;letter-spacing:-.02em;margin:0}
+.lede{color:var(--ink-2);margin:14px 0 0;max-width:56ch}
+
+.eyebrow{
+  font-size:11.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink-3);margin:34px 0 12px;
+}
+
+/* ── thẻ chọn trò chơi ───────────────────────────────────────────────
+   Ba tầng, tách bạch để mỗi tầng lo một việc:
+     .pick    bật vào màn hình, so le nhau theo --n
+     .bob     thở nhẹ lúc nằm yên, để màn hình không chết
+     .card    chính cái decal — nghiêng, đổ bóng cứng, nhấc lên khi trỏ vào
+   Gộp cả ba vào một phần tử thì animation thở sẽ ghi đè transform của hover.
+   ─────────────────────────────────────────────────────────────────── */
+.picker{display:grid;gap:18px;grid-template-columns:1fr}
+@media(min-width:660px){.picker{grid-template-columns:1fr 1fr}}
+
+.pick{
+  padding:0;background:none;border:0;font:inherit;color:inherit;text-align:left;
+  cursor:pointer;border-radius:20px;
+  animation:pop .5s var(--ease-pop) backwards;
+  animation-delay:calc(90ms + var(--n) * 80ms);
+}
+.pick:focus-visible{outline:3px solid var(--lure);outline-offset:4px}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.9)}}
+
+.bob{display:block;animation:bob 5.5s ease-in-out infinite;animation-delay:var(--bd,0s)}
+@keyframes bob{50%{transform:translateY(-5px)}}
+
+.card{
+  --c:var(--turf);
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  gap:10px;padding:30px 20px 24px;border-radius:19px;min-height:280px;justify-content:center;
+  background:var(--surface);border:2.5px solid var(--ink);
+  box-shadow:var(--shadow-lg);
+  transform:rotate(var(--rot,0deg));
+  transition:transform .16s var(--ease-pop), box-shadow .16s var(--ease-out), border-color .16s;
+}
+.pick:hover .card,.pick:focus-visible .card{
+  transform:rotate(0deg) translateY(-5px) scale(1.025);
+  border-color:var(--c);
+}
+.pick:active .card{transform:rotate(0deg) translateY(2px) scale(.96)}
+.pick:hover .bob,.pick:focus-visible .bob{animation-play-state:paused}
+
+/* Icon là ngôi sao của thẻ: to, có nền tròn màu của trò chơi. */
+.card .hero{
+  width:96px;height:96px;border-radius:50%;display:grid;place-items:center;
+  background:color-mix(in srgb, var(--c) 14%, var(--surface));
+  border:2.5px solid var(--ink);color:var(--c);
+}
+.card .hero .ic{width:52px;height:52px;stroke-width:2.1}
+.card h2{font-size:20px;margin:2px 0 0;letter-spacing:-.01em}
+.card p{margin:0;font-size:14px;color:var(--ink-2);text-align:center;max-width:26ch}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:2px}
+.chip{
+  font-size:11.5px;font-weight:600;letter-spacing:.02em;
+  padding:3px 9px;border-radius:99px;
+  background:var(--surf-2);border:1.5px solid var(--line);color:var(--ink-2);
+}
+.card .kbd{
+  position:absolute;top:9px;left:11px;
+  font:600 11px/1 ui-monospace,Consolas,monospace;
+  padding:4px 7px;border-radius:6px;
+  background:var(--surf-2);border:1.5px solid var(--line);color:var(--ink-3);
+}
+/* Mũi tên "vào" hiện khi trỏ vào — thẻ là một hành động, không phải lựa chọn. */
+.card .tick{
+  position:absolute;top:9px;right:11px;width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;background:var(--c);color:#fff;
+  border:2.5px solid var(--ink);opacity:0;transform:scale(.5) rotate(-25deg);
+  transition:opacity .16s, transform .22s var(--ease-pop);
+}
+.pick:hover .tick,.pick:focus-visible .tick{opacity:1;transform:scale(1) rotate(0)}
+
+.hint{font-size:12.5px;color:var(--ink-3);margin:6px 0 0}
+
+.ghost{
+  display:inline-flex;align-items:center;gap:8px;
+  font:600 14px/1 inherit;min-height:44px;padding:12px 16px;border-radius:11px;
+  background:var(--surface);color:var(--ink-2);border:2px solid var(--line);
+  text-decoration:none;cursor:pointer;
+  transition:transform .12s var(--ease-pop),border-color .14s;
+}
+.ghost:hover{border-color:var(--ink-3);transform:translateY(-2px)}
+.ghost:active{transform:translateY(1px)}
+.ghost:focus-visible{outline:3px solid var(--lure);outline-offset:3px}
+
+footer{
+  margin:34px 0 8px;padding-top:20px;border-top:2px solid var(--line);
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  font-size:13px;color:var(--ink-3);
+}
+
+/* ── màn mở và chuyển cảnh ────────────────────────────────────────────
+   #veil tan bằng animation THUẦN CSS: JS chết ở đâu thì trang vẫn hiện ra.
+   ─────────────────────────────────────────────────────────────────── */
+#veil{
+  position:fixed;inset:0;z-index:999;pointer-events:none;
+  background:var(--paper);display:grid;place-items:center;
+  animation:veilOut .46s var(--ease-out) .2s forwards;
+}
+#veil.gone{animation:none;opacity:0;visibility:hidden}
+@keyframes veilOut{to{opacity:0;visibility:hidden}}
+#veil .bootMark{
+  width:78px;height:78px;border-radius:20px;display:grid;place-items:center;
+  background:var(--turf);color:#fff;border:3px solid var(--ink);box-shadow:var(--shadow-lg);
+  animation:bootPop .52s var(--ease-pop) backwards;
+}
+#veil .bootMark .ic{width:40px;height:40px}
+@keyframes bootPop{from{opacity:0;transform:scale(.7) rotate(-8deg)}}
+
+#wash{
+  position:fixed;inset:0;z-index:1000;pointer-events:none;
+  opacity:0;transition:opacity .26s var(--ease-snap);
+}
+#wash.on{opacity:1}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important}
+  .card,.btn,.ghost{transition-duration:.06s}
+}
+</style>
+</head>
+<body>
+<div id="veil"><span class="bootMark" id="bootMark"></span></div>
+<div id="wash"></div>
+
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <span class="mark" id="brandMark"></span>
+      <h1>Order Race</h1>
+    </div>
+    <p class="lede">
+      Công cụ quay thưởng nội bộ. Chọn một trò chơi để vào — danh sách và giải thưởng nhập ở
+      ngay trong trò đó. Kết quả do thuật toán chốt trước khi trò chơi bắt đầu và kiểm chứng
+      lại được sau buổi lễ.
+    </p>
+  </header>
+
+  <p class="eyebrow">Chọn trò chơi</p>
+  <div class="picker" id="picker"></div>
+
+  <footer>
+    <a class="ghost" href="verify.html" id="verifyLink">Trang kiểm chứng kết quả</a>
+    <button class="ghost" id="mute" type="button"></button>
+    <span>Phím tắt: <b>1</b> · <b>2</b> vào thẳng trò chơi.</span>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+/* INJECT:HUB */
+
+(function () {
+
+const GAMES = [
+  {
+    id: "race",
+    href: "race.html",
+    icon: "race",
+    color: "var(--turf)",
+    wash: "#0b1a12",
+    rot: "-1.4deg",
+    name: "Đường đua",
+    desc: "Một cuộc đua 40 giây, ai về đích trước thì trúng.",
+    chips: ["40 giây", "top-K về đích", "30 – 150 người"],
+  },
+  {
+    id: "redlight",
+    href: "redlight.html",
+    icon: "referee",
+    color: "var(--lure)",
+    wash: "#1b1405",
+    rot: "1.6deg",
+    name: "SquidGame",
+    desc: "Trọng tài quay mặt là ai nhúc nhích bị loại. Ai sống sót tới cuối thì trúng.",
+    chips: ["60 – 80 giây", "loại dần", "30 – 150 người"],
+  },
+];
+
+const $ = (id) => document.getElementById(id);
+const picker = $("picker");
+
+// Thiết lập không nằm ở đây nữa — mỗi trò chơi tự nhập lấy. Nhưng nếu quản trò
+// vừa từ một trò bấm sang thì thiết lập của trò đó được MANG THEO qua phần băm
+// URL, và chuyển tiếp nguyên vẹn sang trò được chọn. Trang này không đọc, không
+// sửa, chỉ chuyển tiếp — nhờ vậy đổi trò giữa buổi không phải dán lại 150 tên.
+const carried = decodeHandoff(location.hash) ? location.hash : "";
+
+$("brandMark").innerHTML = icon("trophy", 24);
+$("bootMark").innerHTML = icon("trophy", 40);
+
+// Sàn phản hồi khi chạm: một bộ nghe cho mọi thứ bấm được, kể cả thẻ chọn trò
+// chơi vốn được dựng bằng JS sau khi trang đã chạy.
+audio.restoreMuted();
+installTapFeedback(audio, buzz);
+
+const muteBtn = $("mute");
+function paintMute() {
+  muteBtn.innerHTML = icon(audio.muted ? "soundOff" : "soundOn", 17) +
+    "<span>" + (audio.muted ? "Đang tắt tiếng" : "Đang bật tiếng") + "</span>";
+}
+muteBtn.addEventListener("click", () => { audio.setMuted(!audio.muted); paintMute(); });
+paintMute();
+
+// Bấm bất kỳ đâu là bỏ qua màn mở — nó ngắn, nhưng quản trò mở đi mở lại nhiều
+// lần trong một buổi và không ai muốn xem lại cùng một hoạt cảnh mỗi lần.
+addEventListener("pointerdown", () => skipBoot($("veil")), { once: true });
+$("verifyLink").insertAdjacentHTML("afterbegin", icon("verify", 18));
+
+// ---------------------------------------------------------------- thẻ chọn
+GAMES.forEach((g, i) => {
+  const b = document.createElement("button");
+  b.className = "pick";
+  b.type = "button";
+  b.style.setProperty("--n", i);
+  b.setAttribute("aria-label", "Vào " + g.name);
+  b.innerHTML =
+    '<span class="bob" style="--bd:' + (i * 0.7) + 's">' +
+      '<span class="card" style="--c:' + g.color + ';--rot:' + g.rot + '">' +
+        '<span class="kbd">' + (i + 1) + '</span>' +
+        '<span class="tick">' + icon("play", 14) + '</span>' +
+        '<span class="hero">' + icon(g.icon, 52) + '</span>' +
+        '<h2>' + g.name + '</h2>' +
+        '<p>' + g.desc + '</p>' +
+        '<span class="chips">' + g.chips.map((c) => '<span class="chip">' + c + '</span>').join("") + '</span>' +
+      '</span>' +
+    '</span>';
+  b.dataset.tap = "primary";
+  b.addEventListener("click", () => launch(g));
+  picker.append(b);
+});
+
+// ------------------------------------------------------------------ vào game
+function launch(game) {
+  // Rửa màn bằng đúng màu của trò chơi sắp vào, rồi trang đích tan tấm phủ cùng
+  // màu đó ra. Hai tài liệu khác nhau nhưng đọc thành một cú chuyển cảnh liền.
+  audio.tone({ freq: audio.vary(240), sweepTo: 700, dur: 0.3, type: "triangle", gain: 0.14 });
+  const target = game.href + carried;
+  washOut($("wash"), game.wash, () => { location.href = target; });
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "1") { e.preventDefault(); launch(GAMES[0]); }
+  else if (e.key === "2") { e.preventDefault(); launch(GAMES[1]); }
+});
+
+})();
+</script>
+</body>
+</html>

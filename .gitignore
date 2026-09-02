@@ -1,0 +1,30 @@
+# Unity
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+*.csproj
+!tools/csharp-check/CsharpCheck.csproj
+*.sln
+*.user
+
+# .NET
+bin/
+obj/
+
+# Node
+node_modules/
+
+# Sinh tu dong — dung sua tay, chay: npm run m0
+web/index.html
+web/verify.html
+web/race.html
+web/redlight.html
+tests/vectors/fairness-vectors.tsv
+
+# Nhạc nền — file nhạc là tài sản của bạn, không đưa vào kho mã
+music/*
+!music/README.md

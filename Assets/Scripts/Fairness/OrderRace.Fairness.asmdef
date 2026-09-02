@@ -1,0 +1,14 @@
+{
+    "name": "OrderRace.Fairness",
+    "rootNamespace": "OrderRace.Fairness",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

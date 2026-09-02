@@ -1,0 +1,26 @@
+{
+  "name": "order-race",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Order Race — minigame quay thưởng đua chó. Xem docs/GDD.html.",
+  "scripts": {
+    "selftest": "node tools/fairness/selftest.mjs",
+    "vectors": "node tools/fairness/gen-vectors.mjs",
+    "build:web": "node tools/build-web.mjs",
+    "check:verify": "node tools/fairness/check-verify-page.mjs",
+    "check:csharp": "dotnet run --project tools/csharp-check -c Release -- tests/vectors/fairness-vectors.tsv",
+    "drama": "node tools/race/director-selftest.mjs",
+    "m0": "npm run selftest && npm run vectors && npm run build:web && npm run check:verify && npm run check:csharp",
+    "m1": "npm run m0 && npm run drama && npm run drama:redlight && npm run feel && npm run check:roster && npm run check:labels && npm run check:dog && npm run check:handoff && npm run check:hub && npm run check:race && npm run check:redlight",
+    "check:race": "node tools/race/check-race-page.mjs",
+    "feel": "node tools/race/feel-selftest.mjs",
+    "drama:redlight": "node tools/redlight/elimination-selftest.mjs",
+    "check:redlight": "node tools/redlight/check-redlight-page.mjs",
+    "check:roster": "node tools/web/roster-input-selftest.mjs",
+    "check:labels": "node tools/web/labels-selftest.mjs",
+    "check:handoff": "node tools/web/handoff-selftest.mjs",
+    "check:hub": "node tools/web/check-hub-page.mjs",
+    "check:dog": "node tools/web/dog-selftest.mjs"
+  }
+}

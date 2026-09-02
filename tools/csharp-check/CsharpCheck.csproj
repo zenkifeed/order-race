@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Bộ đối chiếu C# <-> JS cho M0.
+
+    Điểm quan trọng: dự án này KHÔNG sao chép mã nguồn. Nó biên dịch thẳng chính
+    những file .cs mà Unity sẽ dùng, qua thẻ Compile Include bên dưới. Nếu có ai
+    sửa FairDraw.cs mà làm lệch khỏi bản JS, lệnh này báo đỏ ngay — kể cả khi
+    trong máy chưa cài Unity.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>csharp-check</AssemblyName>
+    <RootNamespace>OrderRace.Fairness.Check</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\Assets\Scripts\Fairness\*.cs" />
+    <Compile Include="..\..\Assets\Tests\EditMode\TestRoster.cs" />
+    <Compile Include="..\..\Assets\Tests\EditMode\VectorFile.cs" />
+  </ItemGroup>
+
+</Project>

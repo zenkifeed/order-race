@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Race — bản chạy thử M1</title>
+<style>
+:root{
+  --paper:#0e120f; --surface:#161b17; --surface-2:#1e241f;
+  --ink:#e4e9e0; --ink-2:#aab3a8; --ink-3:#7d867d;
+  --rail:#2c332d; --turf:#48c390; --turf-soft:#15382a;
+  --lure:#f0be51; --danger:#e37a63;
+  --ease-pop:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);overflow:hidden;
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+button{
+  font:600 14px/1 inherit;padding:11px 18px;border-radius:5px;cursor:pointer;
+  background:var(--turf);color:#08110c;border:1px solid var(--turf);
+  transition:transform .09s var(--ease-pop);
+}
+button:active{transform:translateY(2px)}
+button.ghost{background:transparent;color:var(--ink-2);border-color:var(--rail)}
+button:hover{filter:brightness(1.1)}
+button:focus-visible{outline:2px solid var(--lure);outline-offset:2px}
+label{display:block;font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--ink-2);margin:0 0 5px}
+input,textarea{
+  width:100%;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;
+  background:var(--paper);color:var(--ink);border:1px solid var(--rail);
+  border-radius:4px;padding:9px 10px;
+}
+input:focus,textarea:focus{outline:2px solid var(--turf);outline-offset:1px}
+
+#setup{position:fixed;inset:0;overflow-y:auto;padding:40px 20px;background:var(--paper);z-index:30}
+.panel{max-width:760px;margin:0 auto}
+.panel h1{font-size:clamp(24px,4vw,34px);margin:0 0 6px;letter-spacing:-.015em}
+.panel .sub{color:var(--ink-2);margin:0 0 26px;font-size:15px}
+.card{background:var(--surface);border:1px solid var(--rail);border-radius:7px;padding:20px;margin-bottom:16px}
+.grid{display:grid;gap:14px}
+@media(min-width:640px){.grid.c3{grid-template-columns:repeat(3,1fr)}}
+.hint{font-size:12px;color:var(--ink-3);margin:5px 0 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+#report{white-space:pre;font:12px/1.55 ui-monospace,Consolas,monospace;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid var(--rail);border-radius:5px;
+  padding:14px;margin-top:14px;overflow-x:auto;display:none}
+#report.on{display:block}
+.hubLink{display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+  min-height:44px;padding:11px 15px;border-radius:9px;text-decoration:none;
+  font-size:13.5px;font-weight:600;color:var(--ink-2);
+  background:transparent;border:1px solid var(--rail)}
+.hubLink:hover{color:var(--ink);border-color:var(--ink-3)}
+.hubLink:focus-visible{outline:2px solid var(--lure);outline-offset:2px}
+.ic{display:block;flex:none}
+#setupErr{color:var(--danger);font-size:13px;margin-top:10px;display:none}
+#setupErr.on{display:block}
+
+#stage{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%}
+
+/* Lớp chớp sáng của khung va chạm. Chỉ động tới opacity — không bao giờ layout. */
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:15}
+
+.hud{position:fixed;pointer-events:none;z-index:10}
+#hudTop{top:0;left:0;right:0;padding:14px 20px;display:flex;gap:24px;align-items:flex-start;
+  justify-content:space-between;background:linear-gradient(to bottom,rgba(14,18,15,.85),transparent)}
+#hudTop .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+#hudTop .meta{font-size:11.5px;color:var(--ink-3);letter-spacing:.03em}
+#hudTop .meta b{color:var(--ink-2);font-weight:500}
+.ctrls{display:flex;gap:8px;pointer-events:auto}
+.ctrls button{display:inline-flex;align-items:center;gap:7px;
+  background:rgba(22,27,23,.85);border-color:var(--rail);color:var(--ink-2);
+  min-height:40px;padding:9px 13px}
+#paused{position:fixed;inset:0;z-index:22;display:none;align-items:center;justify-content:center;
+  background:rgba(14,18,15,.72);font-size:clamp(28px,5vw,52px);font-weight:800;color:var(--lure);
+  letter-spacing:.08em;pointer-events:none}
+#paused.on{display:flex}
+
+#rail{position:fixed;top:64px;right:16px;width:260px;z-index:10;
+  background:rgba(22,27,23,.92);border:1px solid var(--rail);border-radius:6px;
+  padding:8px;font-size:13px;backdrop-filter:blur(3px)}
+#rail .row{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:4px}
+#rail .row.win{background:var(--turf-soft)}
+#rail .row .r{width:26px;text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,Consolas,monospace;font-size:12px}
+#rail .row.win .r{color:var(--turf);font-weight:700}
+#rail .row .sw{width:11px;height:11px;border-radius:3px;flex:none}
+#rail .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rail .cut{height:2px;background:var(--danger);margin:3px 7px;border-radius:2px}
+#rail .more{padding:6px 7px;color:var(--ink-3);font-size:12px}
+
+#countdown{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(90px,20vw,220px);font-weight:800;color:var(--lure);z-index:20;
+  pointer-events:none;text-shadow:0 8px 0 rgba(0,0,0,.45)}
+
+#podium{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;
+  background:rgba(14,18,15,.93)}
+#podium.on{display:flex}
+#podium .inner{text-align:center;max-width:640px;padding:24px}
+#podium h2{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
+#podium .prize{font-size:22px;color:var(--lure);margin:0 0 24px;font-weight:600}
+#podium .w{display:flex;align-items:center;gap:14px;background:var(--surface);
+  border:1px solid var(--rail);border-radius:7px;padding:14px 18px;margin-bottom:9px;text-align:left;
+  opacity:0;transform:translateY(14px) scale(.96);
+  animation:pop .5s var(--ease-pop) forwards}
+@keyframes pop{to{opacity:1;transform:none}}
+#podium .w .rank{font-size:26px;font-weight:800;color:var(--turf);width:52px;font-variant-numeric:tabular-nums}
+#podium .w .nm{font-size:20px;font-weight:600}
+#podium .seed{margin-top:20px;font-size:11.5px;color:var(--ink-3);word-break:break-all}
+#podium .btns{margin-top:22px;display:flex;gap:10px;justify-content:center}
+
+/* Màn mở: tan ra từ đúng màu mà trang chọn trò chơi đã rửa vào. */
+#veil{
+  position:fixed;inset:0;z-index:999;pointer-events:none;
+  background:#0b1a12;
+  animation:veilOut .5s cubic-bezier(.22,1,.36,1) forwards;
+}
+#veil.gone{animation:none;opacity:0;visibility:hidden}
+@keyframes veilOut{to{opacity:0;visibility:hidden}}
+
+/* Báo đã nhận thiết lập từ trang chọn trò chơi. */
+#took{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:40;
+  display:none;align-items:center;gap:9px;
+  padding:12px 18px;border-radius:11px;
+  background:var(--turf-soft);border:1px solid var(--turf);color:var(--ink);
+  font-size:13.5px;font-weight:600;
+  animation:tookIn .45s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+#took.on{display:flex}
+@keyframes tookIn{from{opacity:0;transform:translate(-50%,14px) scale(.9)}}
+
+@media (prefers-reduced-motion:reduce){
+  #podium .w{animation-duration:.01s}
+  button{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <div class="panel">
+    <h1>Order Race — bản chạy thử M1</h1>
+    <p class="sub">
+      Lớp đạo diễn 5 nhịp chạy thật, chó vẫn là khối hộp. Đây đúng là thứ mốc M1 yêu cầu:
+      xem đủ nhiều lượt để trả lời một câu hỏi duy nhất — có đoán được người thắng trước
+      mốc 70% không.
+    </p>
+
+    <div class="card">
+      <div class="grid c3">
+        <div>
+          <label for="n">Số người tham gia</label>
+          <input type="number" id="n" value="45" min="2" max="150">
+          <p class="hint">2 – 150</p>
+        </div>
+        <div>
+          <label for="k">Số người trúng</label>
+          <input type="number" id="k" value="3" min="1" max="10">
+        </div>
+        <div>
+          <label for="dur">Thời lượng (giây)</label>
+          <input type="number" id="dur" value="40" min="20" max="70">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label for="prize">Tên giải thưởng</label>
+        <input type="text" id="prize" value="Giải Nhất Quý 3">
+        <p class="hint">Cùng danh sách + cùng tên giải luôn ra cùng người thắng. Đổi tên giải để quay lượt khác.</p>
+      </div>
+      <div style="margin-top:14px">
+        <label for="roster">Danh sách (để trống thì sinh tên giả)</label>
+        <textarea id="roster" rows="4" spellcheck="false" placeholder="Mỗi dòng một tên. Bỏ trống để dùng danh sách giả."></textarea>
+        <p class="hint" id="rosterInfo"></p>
+      </div>
+      <div class="actions" style="margin-top:16px">
+        <button id="go">Xuất phát</button>
+        <button id="analyze" class="ghost">Phân tích 20 lượt</button>
+      </div>
+      <a class="hubLink" href="index.html" id="hubLink">Chọn trò chơi khác</a>
+      <div id="setupErr"></div>
+      <div id="report"></div>
+    </div>
+  </div>
+</div>
+
+<div id="veil"></div>
+<div id="took"></div>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+<div id="flash"></div>
+
+<div class="hud" id="hudTop">
+  <div>
+    <div class="big" id="clock">0.0s</div>
+    <div class="meta" id="meta"></div>
+    <div class="meta" id="nowPlaying"></div>
+  </div>
+  <div class="ctrls">
+    <button id="pause" class="ghost"></button>
+    <button id="backLive" class="ghost"></button>
+    <button id="mute" class="ghost"></button>
+  </div>
+</div>
+
+<div id="rail"></div>
+<div id="countdown"></div>
+<div id="paused">TẠM DỪNG</div>
+
+<div id="podium">
+  <div class="inner">
+    <h2>Kết quả</h2>
+    <p class="prize" id="podPrize"></p>
+    <div id="podList"></div>
+    <div class="seed mono" id="podSeed"></div>
+    <div class="btns">
+      <button id="again">Lượt khác</button>
+      <button id="back" class="ghost">Đổi thiết lập</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* INJECT:RACE */
+
+// Mã của trang chạy trong phạm vi riêng. Phần thuật toán nhúng ở trên khai báo
+// hàng chục tên ở cấp cao nhất (clamp01, smoothstep, BEATS…), và sớm muộn cũng
+// có một cái trùng với tên của lớp giao diện. Bọc lại thì loại hẳn cả nhóm lỗi
+// đó thay vì đi đổi tên từng cái một.
+(function () {
+
+// =========================================================================
+//  Hình học đường đua: một sân oval kiểu sân vận động — hai đoạn thẳng nối
+//  bởi hai nửa đường tròn. Vạch xuất phát trùng vạch đích, đúng như đua thật.
+// =========================================================================
+const TRACK_R = 250;
+const TRACK_L = 620;
+const PERIM = 2 * TRACK_L + 2 * Math.PI * TRACK_R;
+const ARC = Math.PI * TRACK_R;
+const LANES = 7;
+const LANE_W = 26;
+
+function pointAt(prog, laneOffset) {
+  let s = prog * PERIM;
+  s = ((s % PERIM) + PERIM) % PERIM;
+  const rr = TRACK_R + laneOffset;
+
+  if (s < TRACK_L) {
+    return { x: -TRACK_L / 2 + s, y: rr, a: 0 };
+  }
+  if (s < TRACK_L + ARC) {
+    const psi = Math.PI / 2 - (s - TRACK_L) / TRACK_R;
+    return { x: TRACK_L / 2 + rr * Math.cos(psi), y: rr * Math.sin(psi), a: -psi };
+  }
+  if (s < 2 * TRACK_L + ARC) {
+    return { x: TRACK_L / 2 - (s - TRACK_L - ARC), y: -rr, a: Math.PI };
+  }
+  const psi = -Math.PI / 2 - (s - 2 * TRACK_L - ARC) / TRACK_R;
+  return { x: -TRACK_L / 2 + rr * Math.cos(psi), y: rr * Math.sin(psi), a: -psi };
+}
+
+/** Màu lông suy ra từ tên — cùng một người luôn cùng một màu, xem GDD §9. */
+/* GEO-END — mốc cho tools/race/check-race-page.mjs, đừng xoá */
+
+// Ngoại hình và sprite đến từ tools/web/dog.mjs — cùng hệ nhận diện với
+// minigame kia, nên một người luôn là cùng một chú chó ở cả hai trò.
+const hashCode = hashName;
+
+// =========================================================================
+//  LỚP CẢM GIÁC
+//
+//  Mô hình khung va chạm: chuẩn bị → ▣ VA CHẠM → phản ứng → lắng xuống.
+//  Mọi phản hồi phải nổ đúng vào KHOẢNH KHẮC CHẠM VẠCH, không phải rải đều
+//  quanh nó. Bản trước làm chậm cả 12% cuối bằng hai bậc nhảy cứng, nên nó
+//  đọc ra thành "máy chạy chậm" chứ không thành "khoảnh khắc quan trọng".
+// =========================================================================
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Giảm biên độ chuyển động, nhưng KHÔNG bao giờ tắt phản hồi về không. */
+const MOTION = REDUCED ? 0.45 : 1;
+/** Rung màn hình bị cắt mạnh tay nhất — nó gây chóng mặt nhiều nhất. */
+const SHAKE_MOTION = REDUCED ? 0 : 1;
+
+// Hằng số và đường cong của lớp cảm giác đến từ tools/race/feel.mjs, được nhúng
+// vào trang cùng với thuật toán. Nhờ vậy chúng kiểm thử được bằng máy thay vì
+// nằm chôn trong một file HTML — xem tools/race/feel-selftest.mjs.
+
+// ------------------------------------------------------------------ nhạc nền
+// audio, buzz và makeMusic đến từ tools/web/sound.mjs — dùng chung với các
+// minigame khác, để sửa một chỗ là sửa cho tất cả.
+/* INJECT:MUSIC */
+
+const music = makeMusic(MUSIC, (name) => {
+  nowPlayingEl.textContent = name ? "♪ " + name : "";
+});
+
+// -------------------------------------------------- hiệu ứng của khung va chạm
+// Ba hiệu ứng này chạy trên thời gian THẬT, không phải thời gian đã bị làm chậm.
+// Cố ý: trong lúc đóng băng, đàn chó phải đứng yên còn màn hình thì phải rung —
+// đó chính là hình ảnh của một cú va chạm. Nếu rung cũng bị đóng băng thì chỉ
+// còn lại một khung hình đứng im, và nó lại đọc ra thành treo máy.
+const fx = { flash: 0, shake: 0, punch: 0 };
+
+function fireImpact() {
+  fx.flash = 1;
+  fx.shake = 1;
+  fx.punch = 1;
+  audio.tone({ freq: audio.vary(190), sweepTo: 55, dur: 0.42, type: "sine", gain: 0.3 });
+  audio.noise({ dur: 0.5, gain: 0.2, cutoff: 2600 });
+  audio.tone({ freq: audio.vary(880), dur: 0.5, type: "triangle", gain: 0.1, at: 0.05 });
+  buzz([30, 40, 90]);
+}
+
+function decayFx(dtReal) {
+  fx.flash = Math.max(0, fx.flash - dtReal / 0.20);
+  fx.shake = Math.max(0, fx.shake - dtReal / 0.45);
+  fx.punch = Math.max(0, fx.punch - dtReal / 0.55);
+}
+
+const shakeOffset = (nowSec) => shakeAt(nowSec, fx.shake, SHAKE_MOTION);
+
+// =========================================================================
+//  Trạng thái
+// =========================================================================
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const clockEl = document.getElementById("clock");
+const cdEl = document.getElementById("countdown");
+const flashEl = document.getElementById("flash");
+const nowPlayingEl = document.getElementById("nowPlaying");
+const railEl = document.getElementById("rail");
+let state = null;
+let dpr = 1;
+let railKey = "";
+
+// Bộ đệm dùng lại, cấp phát một lần mỗi cuộc đua. Dựng mảng mới mỗi khung hình
+// là nguyên nhân phổ biến nhất của "juice làm giật", chứ không phải hiệu ứng.
+let posBuf = null;
+let idxBuf = null;
+let pxBuf = null;
+let pyBuf = null;
+let nameW = null;
+let candPool = null;
+let cands = null;
+const placedOut = [];
+
+const LABEL_FONT = "600 13px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif";
+const LABEL_H = 19;
+
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.floor(cv.clientWidth * dpr);
+  cv.height = Math.floor(cv.clientHeight * dpr);
+}
+window.addEventListener("resize", resize);
+
+function buildRoster() {
+  const raw = document.getElementById("roster").value.trim();
+  if (raw.length > 0) return raw.split(/\r?\n/);
+  const n = Math.max(2, Math.min(150, Number(document.getElementById("n").value) || 45));
+  return makeTestRoster(1, n);
+}
+
+function startRace() {
+  const err = document.getElementById("setupErr");
+  err.classList.remove("on");
+  audio.unlock();
+
+  let drawResult, race;
+  const prize = document.getElementById("prize").value;
+  const topK = Math.max(1, Number(document.getElementById("k").value) || 3);
+  const durationSec = Math.max(20, Number(document.getElementById("dur").value) || 40);
+  try {
+    drawResult = draw(buildRoster(), prize);
+    race = buildRace(drawResult.finalOrder, drawResult.seedHex, { topK, durationSec });
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.add("on");
+    return;
+  }
+
+  const n = race.n;
+  const lanes = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    lanes[i] = ((hashCode(race.finalOrder[i] + "#lane") % LANES) - (LANES - 1) / 2) * LANE_W;
+  }
+
+  // Nướng sprite MỘT LẦN. Mỗi khung hình sau đó chỉ còn hai lệnh drawImage cho
+  // mỗi con, thay vì mười lệnh vẽ đường — xem chú thích đầu dog.mjs.
+  const looks = assignLooks(race.finalOrder);
+  const sprites = bakeAll(race.finalOrder, looks, 2);
+
+  // Đàn ít người thì vẽ to hơn, để biển tên trên lưng đọc được.
+  const dogScale = Math.max(0.34, Math.min(0.66, 0.70 - n * 0.0019));
+
+  posBuf = new Float64Array(n);
+  idxBuf = new Int32Array(n);
+  pxBuf = new Float64Array(n);
+  pyBuf = new Float64Array(n);
+  ctx.font = LABEL_FONT;
+  nameW = new Float64Array(n);
+  for (let i = 0; i < n; i++) nameW[i] = ctx.measureText(race.finalOrder[i]).width + 14;
+  candPool = [];
+  for (let i = 0; i < n; i++) candPool.push({ key: i, x: 0, y: 0, w: 0, h: LABEL_H, priority: 1 });
+  cands = [];
+
+  state = {
+    drawResult, race, prize, topK, durationSec, lanes,
+    looks, sprites, dogScale,
+    colors: looks.map((l) => l.fur),
+    paused: false,
+    finishT: race.finishSample * race.dtNorm * durationSec,
+    t: 0, phase: "countdown", sinceImpact: 0, beeped: -1,
+    countdownFrom: performance.now(), last: performance.now(),
+  };
+
+  fx.flash = fx.shake = fx.punch = 0;
+  railKey = "";
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("podium").classList.remove("on");
+  document.getElementById("paused").classList.remove("on");
+  paintControls();
+  document.getElementById("meta").innerHTML =
+    `<b>${n}</b> chó · top <b>${topK}</b> · seed <b>${drawResult.seedHex.slice(0, 12)}…</b>`;
+  resize();
+  requestAnimationFrame(frame);
+}
+
+// =========================================================================
+//  Hệ số thời gian — đường cong liền mạch, neo vào khung va chạm
+//
+//  Bản trước: `tn > 0.95 ? 0.3 : tn > 0.88 ? 0.65 : 1` — hai bậc nhảy cứng,
+//  kéo dài suốt 12% cuối. Bậc nhảy tức thời của hệ số thời gian đọc ra y hệt
+//  một cú rớt khung hình, và một vùng chậm kéo dài mà không có cú va chạm nào
+//  ở giữa thì chỉ còn là chậm chạp.
+// =========================================================================
+const timeScale = (s) => timeScaleAt(s.phase, s.sinceImpact, s.finishT - s.t);
+
+function frame(now) {
+  const s = state;
+  if (!s) return;
+  const dtReal = Math.min(0.05, (now - s.last) / 1000);
+  s.last = now;
+
+  if (s.paused) {
+    render(now / 1000);
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  decayFx(dtReal);
+  music.tick(dtReal);
+
+  if (s.phase === "countdown") {
+    const elapsed = (now - s.countdownFrom) / 1000;
+    const left = Math.ceil(3 - elapsed);
+    cdEl.textContent = left > 0 ? String(left) : "CHẠY!";
+    if (left !== s.beeped) {
+      s.beeped = left;
+      if (left > 0) audio.tone({ freq: audio.vary(520), dur: 0.1, type: "square", gain: 0.1 });
+      else {
+        // Cửa chuồng bật — bậc mạnh: chớp, rung, giật máy quay, tiếng kim loại.
+        fireImpact();
+        fx.flash = 0.55;
+        audio.tone({ freq: audio.vary(1180), dur: 0.16, type: "square", gain: 0.13 });
+        music.start();
+      }
+    }
+    if (elapsed > 3.6) { s.phase = "run"; cdEl.textContent = ""; }
+
+  } else if (s.phase === "run") {
+    s.t += dtReal * timeScale(s);
+    if (s.t >= s.finishT) {
+      // ▣ KHUNG VA CHẠM. Mọi kênh nổ trên cùng một tick.
+      s.t = s.finishT;
+      s.phase = "impact";
+      s.sinceImpact = 0;
+      fireImpact();
+      music.duck(0.35);
+    }
+
+  } else if (s.phase === "impact") {
+    s.sinceImpact += dtReal;
+    if (s.sinceImpact >= FEEL.FREEZE) s.phase = "reaction";
+
+  } else if (s.phase === "reaction") {
+    s.sinceImpact += dtReal;
+    s.t += dtReal * timeScale(s);
+    if (s.sinceImpact >= finishBeatDuration()) { s.phase = "done"; showPodium(); }
+  }
+
+  render(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+// =========================================================================
+//  Vẽ
+// =========================================================================
+function render(nowSec) {
+  const s = state;
+  const race = s.race;
+  const tn = Math.min(s.t / s.durationSec, 1 + 0.34);
+
+  // Vị trí LIÊN TỤC, nội suy giữa hai mẫu.
+  //
+  // Bản trước làm tròn về mẫu gần nhất. Ở 30 Hz thì tốc độ thường đã có khung
+  // trùng, còn khi chậm còn 0.3× thì mỗi mẫu bị giữ tới 6–7 khung — đàn chó
+  // nhảy giữa các ô thay vì trượt. Đó mới là thứ trông giống giật lag, và nó
+  // là lỗi lấy mẫu chứ không phải lỗi hiệu ứng.
+  const x = tn / race.dtNorm;
+  const a = Math.max(0, Math.min(race.sampleCount - 1, Math.floor(x)));
+  const b = Math.min(race.sampleCount - 1, a + 1);
+  const f = x - a;
+  for (let dog = 0; dog < race.n; dog++) {
+    const row = dog * race.sampleCount;
+    posBuf[dog] = race.progress[row + a] * (1 - f) + race.progress[row + b] * f;
+    idxBuf[dog] = dog;
+  }
+  const order = idxBuf;
+  order.sort((p, q) => posBuf[q] - posBuf[p] || p - q);
+
+  // --- camera bám nhóm dẫn đầu, siết lại khi tới gần vạch đích
+  const lead = posBuf[order[0]];
+  const back = posBuf[order[Math.min(7, race.n - 1)]];
+  const cam = pointAt(lead - (lead - back) * 0.45, 0);
+  const closing = Math.max(0, Math.min(1, (s.finishT - s.t) / FEEL.ANTICIPATION));
+  const zoom = (1.45 + 0.28 * (1 - closing) * MOTION) * (1 + 0.10 * fx.punch * fx.punch * MOTION);
+  const sh = shakeOffset(nowSec);
+
+  const W = cv.width, H = cv.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#0e120f";
+  ctx.fillRect(0, 0, W, H);
+  const k = dpr * zoom;
+  ctx.setTransform(k, 0, 0, k, W / 2 - cam.x * k + sh.x * dpr, H / 2 - cam.y * k + sh.y * dpr);
+
+  drawTrack();
+  for (let p = race.n - 1; p >= 0; p--) {
+    const dog = order[p];
+    const pt = pointAt(Math.min(posBuf[dog], 1.03), s.lanes[dog]);
+    pxBuf[dog] = pt.x;
+    pyBuf[dog] = pt.y;
+    drawDogSprite(pt, s.sprites[dog], s.dogScale,
+                  dog < s.topK && s.phase !== "run" && s.phase !== "countdown");
+  }
+
+  drawNameLabels(order);
+
+  flashEl.style.opacity = String(easeOutCubic(fx.flash) * 0.5);
+  clockEl.textContent = s.t.toFixed(1) + "s";
+  renderRail(order);
+}
+
+/**
+ * Biển tên trên đầu từng chú chó.
+ *
+ * Bản đầu chỉ hiện tên cho 8 con dẫn đầu — con số 8 là chọn bừa, và nó có nghĩa
+ * là 142 người còn lại không bao giờ thấy tên mình. Giờ ai còn chỗ thì hiện,
+ * nhóm dẫn đầu được ưu tiên trước, và số tên đọc được tự co giãn theo mật độ
+ * thay vì bị chặn cứng ở một con số.
+ */
+/** Biển bay cỡ lớn cho nhóm dẫn đầu. Xem chú thích trong thân hàm. */
+function drawNameLabels(order) {
+  const s = state;
+  const race = s.race;
+
+  // Chỉ nhóm dẫn đầu mới cần biển bay cỡ lớn. Mọi con đã mang tên trên lưng
+  // rồi, nên đây là lớp ĐỌC RÕ HƠN cho nhóm đang được chú ý, không phải lớp
+  // duy nhất có tên.
+  cands.length = 0;
+  for (let p = 0; p < Math.min(8, race.n); p++) {
+    const dog = order[p];
+    const c = candPool[dog];
+    c.x = pxBuf[dog];
+    c.y = pyBuf[dog] - 44;
+    c.w = nameW[dog];
+    c.priority = 0;
+    cands.push(c);
+  }
+
+  const placed = placeLabels(cands, { padding: 3, out: placedOut });
+
+  ctx.font = LABEL_FONT;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const L of placed) {
+    ctx.fillStyle = L.priority === 0 ? "rgba(14,18,15,.9)" : "rgba(14,18,15,.72)";
+    ctx.beginPath();
+    ctx.roundRect(L.x - L.w / 2, L.y - LABEL_H / 2, L.w, LABEL_H, 4);
+    ctx.fill();
+    ctx.fillStyle = "#e4e9e0";
+    ctx.fillText(race.finalOrder[L.key], L.x, L.y);
+  }
+}
+
+/** Về màn hình thiết lập giữa chừng. Mọi thiết lập vẫn nằm nguyên trong form. */
+/**
+ * Báo cho quản trò biết thiết lập đã sang tới nơi.
+ *
+ * Không có nó thì trang mở ra với các ô đã điền sẵn và không ai chắc chúng đến
+ * từ đâu — nhất là khi vừa đổi trò chơi và đang phân vân danh sách còn đúng không.
+ */
+function announceHandoff() {
+  const el = document.getElementById("took");
+  const n = Number(document.getElementById("n").value) || 0;
+  el.innerHTML = icon("people", 16) +
+    "<span>Đã nhận " + n + " người từ trang chọn trò chơi</span>";
+  el.classList.add("on");
+  setTimeout(() => el.classList.remove("on"), 3600);
+}
+
+function backToSetup() {
+  state = null;
+  music.stop();
+  document.getElementById("paused").classList.remove("on");
+  document.getElementById("podium").classList.remove("on");
+  document.getElementById("setup").style.display = "";
+}
+
+function togglePause() {
+  const s = state;
+  if (!s || s.phase === "done") return;
+  s.paused = !s.paused;
+  document.getElementById("paused").classList.toggle("on", s.paused);
+  paintControls();
+  if (s.paused) music.pause();
+  else music.resume();
+}
+
+function drawTrack() {
+  const outer = TRACK_R + LANE_W * (LANES + 1) / 2;
+  const inner = TRACK_R - LANE_W * (LANES + 1) / 2;
+
+  const band = (r, color, width) => {
+    ctx.beginPath();
+    ctx.moveTo(-TRACK_L / 2, r);
+    ctx.lineTo(TRACK_L / 2, r);
+    ctx.arc(TRACK_L / 2, 0, r, Math.PI / 2, -Math.PI / 2, true);
+    ctx.lineTo(-TRACK_L / 2, -r);
+    ctx.arc(-TRACK_L / 2, 0, r, -Math.PI / 2, Math.PI / 2, true);
+    ctx.closePath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  };
+
+  ctx.save();
+  band((outer + inner) / 2, "#243329", outer - inner);
+  for (let i = 1; i < LANES + 1; i++) band(inner + i * LANE_W, "rgba(255,255,255,.05)", 1.5);
+
+  ctx.save();
+  ctx.translate(-TRACK_L / 2, 0);
+  for (let i = 0; i < LANES + 1; i++) {
+    ctx.fillStyle = i % 2 ? "#f2f4ee" : "#20261f";
+    ctx.fillRect(-7, inner + i * LANE_W, 14, LANE_W);
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+/**
+ * Vẽ một chú chó từ sprite đã nướng.
+ *
+ * Thân xoay theo hướng chạy, biển tên đứng thẳng — ở khúc cua mà biển tên cũng
+ * nghiêng theo thì không ai đọc nổi. Đó là lý do sprite được tách làm hai.
+ */
+function drawDogSprite(pt, sp, scale, isWinner) {
+  const bw = sp.bodyW * scale;
+  const bh = sp.bodyH * scale;
+
+  ctx.save();
+  ctx.translate(pt.x, pt.y);
+  ctx.rotate(pt.a);
+  if (isWinner) {
+    ctx.strokeStyle = "#f0be51";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, -bh * 0.12, bw * 0.56, bh * 0.46, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.drawImage(sp.body, -bw / 2, -bh * 0.62, bw, bh);
+  ctx.restore();
+
+  const pw = sp.plateW * scale * 0.92;
+  const ph = sp.plateH * scale * 0.92;
+  ctx.drawImage(sp.plate, pt.x - pw / 2, pt.y + bh * 0.30, pw, ph);
+}
+
+function renderRail(order) {
+  const s = state;
+  const K = s.topK;
+  const show = Math.min(s.race.n, K + 3);
+
+  // Chỉ dựng lại DOM khi thứ tự hiển thị thật sự đổi.
+  let key = "";
+  for (let p = 0; p < show; p++) key += order[p] + ",";
+  if (key === railKey) return;
+  railKey = key;
+
+  let html = "";
+  for (let p = 0; p < show; p++) {
+    const dog = order[p];
+    if (p === K) html += '<div class="cut"></div>';
+    html += `<div class="row${p < K ? " win" : ""}">` +
+            `<span class="r">${p + 1}</span>` +
+            `<span class="sw" style="background:${s.colors[dog]}"></span>` +
+            `<span class="nm">${escapeHtml(s.race.finalOrder[dog])}</span></div>`;
+  }
+  if (s.race.n > show) html += `<div class="more">và ${s.race.n - show} người khác</div>`;
+  railEl.innerHTML = html;
+}
+
+const escapeHtml = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function showPodium() {
+  const s = state;
+  document.getElementById("podPrize").textContent = s.drawResult.prizeLabel || "(không đặt tên giải)";
+  let html = "";
+  for (let p = 0; p < s.topK && p < s.race.n; p++) {
+    // Công bố lần lượt, không đổ ra cùng lúc — mỗi cái một nhịp.
+    html += `<div class="w" style="animation-delay:${(s.topK - 1 - p) * 0.24}s">` +
+            `<span class="rank">#${p + 1}</span>` +
+            `<span class="sw" style="width:14px;height:14px;border-radius:4px;background:${s.colors[p]}"></span>` +
+            `<span class="nm">${escapeHtml(s.race.finalOrder[p])}</span></div>`;
+  }
+  document.getElementById("podList").innerHTML = html;
+  document.getElementById("podSeed").textContent = "seed " + s.drawResult.seedHex;
+  document.getElementById("podium").classList.add("on");
+  music.duck(0.9 + s.topK * 0.24);
+
+  const chord = [523.25, 659.25, 783.99];
+  for (let i = 0; i < Math.min(s.topK, 3); i++) {
+    audio.tone({ freq: chord[i], dur: 0.7, type: "triangle", gain: 0.11, at: (s.topK - 1 - i) * 0.24 });
+  }
+}
+
+// =========================================================================
+//  Phân tích 20 lượt — bản chạy trong trình duyệt của cửa kịch tính M1
+// =========================================================================
+function analyze() {
+  const roster = buildRoster();
+  const topK = Math.max(1, Number(document.getElementById("k").value) || 3);
+  const rows = [];
+  let leadChangeSum = 0, tightFinish = 0, earlyReveal = 0;
+
+  for (let i = 0; i < 20; i++) {
+    const d = draw(roster, "Phân tích lượt " + i);
+    const r = buildRace(d.finalOrder, d.seedHex, { topK });
+    let last = -1, changes = 0, firstLeadTn = 1;
+    for (let sm = 0; sm <= r.finishSample; sm += 3) {
+      const lead = r.rankingAt(sm)[0];
+      if (lead !== last) { changes++; last = lead; }
+      if (lead === 0 && firstLeadTn === 1) firstLeadTn = sm * r.dtNorm;
+    }
+    const gap = r.progressOf(0, r.finishSample) - r.progressOf(1, r.finishSample);
+    leadChangeSum += changes;
+    if (gap < 0.006) tightFinish++;
+    if (firstLeadTn < 0.8) earlyReveal++;
+    rows.push(`  ${String(i + 1).padStart(2)}   ${String(changes).padStart(2)}       ` +
+              `${(firstLeadTn * 100).toFixed(0).padStart(3)}%      ${(gap * 100).toFixed(2)}%   ` +
+              `${r.finalOrder[0]}`);
+  }
+
+  const rep = document.getElementById("report");
+  rep.textContent = [
+    `Phân tích 20 lượt · ${roster.length} người · top ${topK}`,
+    "",
+    "  lượt  đổi ngôi  lộ mặt  cách hạng 2  người thắng",
+    ...rows,
+    "",
+    `  Đổi ngôi đầu trung bình : ${(leadChangeSum / 20).toFixed(1)} lần / lượt`,
+    `  Về đích sát nút         : ${tightFinish}/20 lượt`,
+    `  Lộ người thắng trước 80%: ${earlyReveal}/20 lượt  ${earlyReveal === 0 ? "(đạt)" : "(KHÔNG ĐẠT)"}`,
+  ].join("\n");
+  rep.classList.add("on");
+}
+
+// =========================================================================
+document.getElementById("go").addEventListener("click", startRace);
+document.getElementById("analyze").addEventListener("click", analyze);
+// Icon vẽ bằng SVG path chứ không dùng emoji: emoji mỗi hệ điều hành vẽ một
+// kiểu và trên Windows chúng ra màu mè lạc hẳn khỏi bảng màu — thấy rõ nhất
+// đúng lúc phóng lên máy chiếu.
+// Sàn phản hồi khi chạm: một bộ nghe cho mọi thứ bấm được.
+audio.restoreMuted();
+installTapFeedback(audio, buzz);
+addEventListener("pointerdown", () => skipBoot(document.getElementById("veil")), { once: true });
+
+const muteBtn = document.getElementById("mute");
+const pauseBtn = document.getElementById("pause");
+function paintControls() {
+  muteBtn.innerHTML = icon(audio.muted ? "soundOff" : "soundOn", 17) +
+    "<span>" + (audio.muted ? "Tắt tiếng" : "Tiếng") + "</span>";
+  pauseBtn.innerHTML = icon(state && state.paused ? "play" : "pause", 17) +
+    "<span>" + (state && state.paused ? "Tiếp tục" : "Dừng") + "</span>";
+}
+document.getElementById("backLive").innerHTML = icon("back", 17) + "<span>Thiết lập</span>";
+const hubLink = document.getElementById("hubLink");
+hubLink.insertAdjacentHTML("afterbegin", icon("back", 16));
+
+// Mang thiết lập đang nhập dở về trang chọn trò chơi, để nó chuyển tiếp sang trò
+// được chọn tiếp theo. Đổi trò giữa buổi mà phải dán lại 150 tên là một cái bẫy
+// đúng vào lúc cả phòng đang nhìn.
+hubLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  hubLink.href = "index.html" + encodeHandoff({
+    count: Number(document.getElementById("n").value) || 0,
+    topK: Number(document.getElementById("k").value) || 3,
+    prize: document.getElementById("prize").value,
+    roster: document.getElementById("roster").value,
+  });
+  location.href = hubLink.href;
+});
+
+muteBtn.addEventListener("click", () => {
+  audio.setMuted(!audio.muted);
+  paintControls();
+});
+document.getElementById("again").addEventListener("click", () => {
+  const p = document.getElementById("prize");
+  p.value = p.value.replace(/ ?· lượt \d+$/, "") + " · lượt " + (1 + Math.floor(performance.now()) % 97);
+  startRace();
+});
+document.getElementById("back").addEventListener("click", backToSetup);
+document.getElementById("backLive").addEventListener("click", backToSetup);
+document.getElementById("pause").addEventListener("click", togglePause);
+
+// Phím tắt cho quản trò: giữa buổi lễ thì không ai muốn đi tìm nút bằng chuột.
+document.addEventListener("keydown", (e) => {
+  if (!state) return;
+  if (e.key === "Escape") { e.preventDefault(); backToSetup(); }
+  else if (e.code === "Space") { e.preventDefault(); togglePause(); }
+});
+  const refreshRoster = wireRosterInput({
+    textarea: document.getElementById("roster"),
+    countInput: document.getElementById("n"),
+    infoEl: document.getElementById("rosterInfo"),
+  });
+
+  // Thiết lập đến từ trang chọn game. KHÔNG tự chạy luôn: trình duyệt chỉ cho
+  // phát âm thanh sau một cú chạm, mà cú chạm ở trang trước không tính sang
+  // trang này — tự chạy sẽ cho ra một lượt đua câm. Điền sẵn rồi đặt con trỏ
+  // vào nút xuất phát để quản trò bấm một lần nữa.
+  if (applyHandoff(location.hash, {
+        roster: document.getElementById("roster"),
+        count: document.getElementById("n"),
+        topK: document.getElementById("k"),
+        prize: document.getElementById("prize"),
+      })) {
+    refreshRoster();
+    document.getElementById("go").focus();
+    announceHandoff();
+  }
+  paintControls();
+
+  resize();
+  music.refresh();
+})();
+</script>
+</body>
+</html>
