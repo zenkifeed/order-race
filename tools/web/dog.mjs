@@ -277,7 +277,7 @@ function drawAccessory(g, look) {
  * Nướng một chú chó thành HAI sprite dùng lại được.
  *
  * Tách làm hai vì trên đường đua cong, thân phải xoay theo hướng chạy còn biển
- * tên phải đứng thẳng — gộp một sprite thì tên nằm nghiêng ở khúc cua và không
+ * tên phải đứng thẳng — gộp một sprite thì tên nằm nghiêng khi con chó ngã và không
  * đọc nổi. Hai lệnh drawImage mỗi con vẫn rẻ hơn hẳn mười lệnh vẽ đường.
  *
  * @param name   tên hiển thị trên biển

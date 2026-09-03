@@ -21,6 +21,13 @@
     "check:labels": "node tools/web/labels-selftest.mjs",
     "check:handoff": "node tools/web/handoff-selftest.mjs",
     "check:hub": "node tools/web/check-hub-page.mjs",
-    "check:dog": "node tools/web/dog-selftest.mjs"
+    "check:dog": "node tools/web/dog-selftest.mjs",
+    "modes": "node tools/race/modes-selftest.mjs",
+    "juice": "node tools/race/juice-selftest.mjs",
+    "perf": "node tools/race/perf-selftest.mjs",
+    "check:runtime": "node tools/race/check-race-runtime.mjs",
+    "m2": "npm run m1 && npm run modes && npm run juice && npm run bite && npm run sky && npm run perf && npm run check:runtime",
+    "bite": "node tools/race/bite-selftest.mjs",
+    "sky": "node tools/race/sky-selftest.mjs"
   }
 }

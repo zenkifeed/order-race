@@ -67,10 +67,11 @@ function placeAt(order, dog, target) {
  * Tốc độ của con dẫn đầu theo thời gian. Xuất phát chậm rồi bật lên (cửa chuồng
  * vừa mở, chó còn lấy đà), giữ đều, rồi tăng ở đoạn nước rút.
  */
-function leaderSpeed(t) {
+function leaderSpeed(t, sprintMult = 1) {
+  const boost = 0.16 * sprintMult;
   if (t < 0.04) return 0.6 + 0.4 * smoothstep(t / 0.04);
-  if (t > 0.75 && t < 1) return 1 + 0.16 * smoothstep((t - 0.75) / 0.25);
-  if (t >= 1) return 1.16;
+  if (t > 0.75 && t < 1) return 1 + boost * smoothstep((t - 0.75) / 0.25);
+  if (t >= 1) return 1 + boost;
   return 1;
 }
 
@@ -83,8 +84,8 @@ function leaderSpeed(t) {
  */
 const DRAMA_GAP = 0.0035;
 
-function finalOffsets(n, topK) {
-  const total = SPREAD[SPREAD.length - 1] * 1.02 * spreadScale(n);
+function finalOffsets(n, topK, spreadMult = 1, gapMult = 1) {
+  const total = SPREAD[SPREAD.length - 1] * 1.02 * spreadScale(n) * spreadMult;
   const gapCount = Math.max(1, n - 1);
   const gaps = new Float64Array(gapCount);
 
@@ -104,9 +105,10 @@ function finalOffsets(n, topK) {
     sum += w[r];
   }
 
-  const reserved = drama.size * DRAMA_GAP;
+  const gap = DRAMA_GAP * gapMult;
+  const reserved = drama.size * gap;
   const unit = sum > 0 ? Math.max(0, total - reserved) / sum : 0;
-  for (let r = 0; r < gapCount; r++) gaps[r] = drama.has(r) ? DRAMA_GAP : w[r] * unit;
+  for (let r = 0; r < gapCount; r++) gaps[r] = drama.has(r) ? gap : w[r] * unit;
 
   const offsets = new Float64Array(n);
   for (let r = 1; r < n; r++) offsets[r] = offsets[r - 1] - gaps[r - 1];
@@ -118,13 +120,13 @@ function finalOffsets(n, topK) {
  * Hạng cuối của nó phải nằm trong khoảng 4–8 — đủ xa để cú tụt gây bất ngờ,
  * nhưng không xa tới mức trông vô lý.
  */
-function pickFalseLeader(n, rng) {
+function pickFalseLeader(n, rng, bias = 0) {
   if (n < 8) return -1;
   // Trần phải co theo số người. Với đàn 8 con, hạng 7 chính là con về bét: nó
   // vừa vô lý về mặt kể chuyện, vừa bất khả thi về mặt chuyển động — rơi 7
   // hạng trong 25% cuộc đua là lùi nhanh hơn cả tốc độ chạy.
   const lo = 3;
-  const hi = Math.min(7, Math.max(lo, Math.floor(n * 0.55)));
+  const hi = Math.min(7 + bias, Math.max(lo, Math.floor(n * 0.55)));
   return lo + uniformBelow(rng, hi - lo + 1);
 }
 
@@ -134,7 +136,7 @@ function pickFalseLeader(n, rng) {
  * Chó được đánh số THEO HẠNG CUỐI: chó 0 là người thắng, chó n-1 về bét. Nhờ vậy
  * mốc cuối cùng chỉ là thứ tự 0,1,2,… và mọi ràng buộc đều viết theo hạng.
  */
-function buildVirtualRanks(n, topK, falseLeader, rng) {
+function buildVirtualRanks(n, topK, falseLeader, rng, chaosMult = 1) {
   const startOrder = [];
   for (let i = 0; i < n; i++) startOrder.push(i);
   for (let i = n - 1; i >= 1; i--) {
@@ -157,7 +159,7 @@ function buildVirtualRanks(n, topK, falseLeader, rng) {
     noiseB[i] = uniformBelow(rng, 2001) / 1000 - 1;
   }
 
-  const jitterAmp = Math.max(1, n * 0.09);
+  const jitterAmp = Math.max(1, n * 0.09) * chaosMult;
   const vranks = [];
 
   for (let k = 0; k < BEATS.length; k++) {
@@ -233,13 +235,24 @@ export function buildRace(finalOrder, seedHex, options = {}) {
   const topK = Math.max(1, Math.min(n, options.topK ?? 3));
   const durationSec = options.durationSec ?? 40;
 
+  // Núm của biến thể cuộc đua (tools/race/modes.mjs). Mặc định là 1.0 ở mọi núm,
+  // và nhân với 1.0 là phép toán chính xác — nên không truyền gì vào thì hàm này
+  // dựng ra đúng từng bit cuộc đua mà bản chưa có biến thể dựng ra. Đó là bằng
+  // chứng cấu trúc cho việc lớp biến thể không đụng được vào lõi.
+  const dr = options.drama || {};
+  const spreadMult = dr.spreadMult ?? 1;
+  const gapMult = dr.gapMult ?? 1;
+  const chaosMult = dr.chaosMult ?? 1;
+  const sprintMult = dr.sprintMult ?? 1;
+  const falseLeaderBias = dr.falseLeaderBias ?? 0;
+
   // Luồng ngẫu nhiên RIÊNG của lớp đạo diễn. Dẫn xuất từ seed xếp hạng nhưng
   // tách hẳn, nên chỉnh tham số trình diễn không bao giờ đổi được người thắng.
   const rng = makeRng(sha256HexOfString(seedHex + "|" + DIRECTOR_VERSION));
 
-  const falseLeader = pickFalseLeader(n, rng);
-  const vranks = buildVirtualRanks(n, topK, falseLeader, rng);
-  const endOffsets = finalOffsets(n, topK);
+  const falseLeader = pickFalseLeader(n, rng, falseLeaderBias);
+  const vranks = buildVirtualRanks(n, topK, falseLeader, rng, chaosMult);
+  const endOffsets = finalOffsets(n, topK, spreadMult, gapMult);
 
   const totalNorm = 1 + TAIL;
   const sampleCount = Math.round(durationSec * totalNorm * SAMPLE_HZ) + 1;
@@ -250,7 +263,7 @@ export function buildRace(finalOrder, seedHex, options = {}) {
   const base = new Float64Array(sampleCount);
   for (let j = 1; j < sampleCount; j++) {
     const tMid = (j - 0.5) * dt;
-    base[j] = base[j - 1] + leaderSpeed(tMid) * dt;
+    base[j] = base[j - 1] + leaderSpeed(tMid, sprintMult) * dt;
   }
   const jAtOne = 1 / dt;
   const j0 = Math.floor(jAtOne);
@@ -261,7 +274,7 @@ export function buildRace(finalOrder, seedHex, options = {}) {
 
   // --- Độ lệch của từng chú chó so với con dẫn đầu, nội suy giữa các mốc nhịp.
   const denom = Math.max(1, n - 1);
-  const spread = spreadScale(n);
+  const spread = spreadScale(n) * spreadMult;
 
   // Tại mốc 95%, cả đàn đã đứng ĐÚNG vị trí đích — trừ người thắng và hạng nhì,
   // hai con này đổi chỗ cho nhau. Nhờ vậy đoạn 5% cuối chỉ còn đúng một việc:
@@ -332,6 +345,7 @@ export function buildRace(finalOrder, seedHex, options = {}) {
     n,
     topK,
     durationSec,
+    drama: { spreadMult, gapMult, chaosMult, sprintMult, falseLeaderBias },
     sampleHz: SAMPLE_HZ,
     sampleCount,
     dtNorm: dt,

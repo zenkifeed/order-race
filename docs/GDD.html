@@ -406,7 +406,9 @@ pre em{color:var(--lure);font-style:normal;font-weight:500}
     <li><a href="#s12"><b>12</b> Lộ trình</a></li>
     <li><a href="#s13"><b>13</b> Rủi ro</a></li>
     <li><a href="#s14"><b>14</b> SquidGame</a></li>
-    <li><a href="#s15"><b>15</b> Câu hỏi mở</a></li>
+    <li><a href="#s15"><b>15</b> Biến thể cuộc đua</a></li>
+    <li><a href="#s16"><b>16</b> Sân thẳng và cắn nhau</a></li>
+    <li><a href="#s17"><b>17</b> Câu hỏi mở</a></li>
   </ol>
 </nav>
 
@@ -748,6 +750,10 @@ finalOrder = shuffle(roster_sorted)   <i>// index 0 = hạng 1</i></pre>
   </div>
 
   <h3>Xử lý quy mô 30 – 150</h3>
+  <div class="note warn">
+    <span class="lbl">Quyết định này đã bị đảo lại — xem §16</span>
+    <p>Đoạn dưới đây kết luận sân oval là chế độ duy nhất, dựa trên tiền đề <em>mỗi người một làn</em>. Tiền đề đó sai: đường thẳng không bắt buộc mỗi người một làn, nó chỉ bắt buộc mỗi <em>làn</em> một dải ngang. Với 23 làn và 150 người thì mỗi làn khoảng sáu con — thưa hơn hẳn hai chục con mỗi làn của sân oval bảy làn. Bản đang chạy dùng <strong>sân thẳng, số làn co giãn theo số người</strong>. Giữ đoạn cũ lại vì lý lẽ ở nửa sau của nó — về khả năng đọc — vẫn còn nguyên giá trị.</p>
+  </div>
   <p>Vì số người tối thiểu đã là 30, đường đua thẳng kiểu mỗi người một lane không còn khả thi ở bất kỳ mức nào — <strong>sân oval là chế độ duy nhất</strong>. Điều này thực ra làm gọn thiết kế: chỉ một bố cục sân, một bộ preset camera, một đường cong đạo diễn để tinh chỉnh.</p>
   <p>Vấn đề thật ở quy mô này không phải đồ hoạ mà là <strong>đọc được</strong>: với 150 chú chó, con của bạn nằm ngoài khung hình gần như suốt cuộc đua. Ba tham số scale theo số người để giữ khả năng đọc:</p>
 
@@ -1314,10 +1320,163 @@ float4 <b>nameUV</b>                            <i>// 16 byte — ô của ngư�
 
 <hr class="hr">
 
-<!-- ============ 14 ============ -->
+<!-- ============ 15 ============ -->
 <section id="s15">
+  <p class="eyebrow">Chiều sâu chơi lại</p>
+  <h2><span class="num">15</span>Biến thể cuộc đua</h2>
+
+  <p>§14 mở đầu bằng một quan sát: một buổi lễ mà lượt nào cũng là đường đua thì tới lượt thứ ba đã hết bất ngờ. Minigame thứ hai là một câu trả lời cho quan sát đó. Đây là câu trả lời còn lại, và nó nằm bên trong chính đường đua.</p>
+
+  <p>Một buổi trao thưởng quay 8–12 lượt. Cấu trúc năm nhịp ở §5 chỉ có một dáng: kẻ dẫn đầu giả tàn ở mốc 75%, hạng nhì cầm cờ suốt đoạn nước rút, người thắng vượt ở hai giây cuối. Dáng đó rất tốt — ở lượt đầu. Tới lượt thứ tư thì cả phòng đã thuộc lòng, và cú vượt ở giây cuối không còn ăn tiền nữa vì ai cũng biết nó sắp tới.</p>
+
+  <p>Chiều sâu ở đây <strong>không đến từ việc thêm nút bấm cho quản trò</strong>. Nó đến từ việc đổi <em>biến số</em> của một lượt, dùng lại nguyên cỗ máy đã có.</p>
+
+  <div class="note warn">
+    <span class="lbl">Ràng buộc tuyệt đối</span>
+    <p>Ở một trò chơi thường, luật cân bằng cho biến thể là "đối xứng thì xếp hạng được, bất đối xứng thì chỉ cho PvE". Ở đây luật chặt hơn một bậc: <strong>không biến thể nào được phép chạm vào kết quả</strong> — vì kết quả là thứ khán giả sẽ tự tính lại ở <span class="mono">web/verify.html</span> sau buổi lễ, và trang đó không biết gì về biến thể cả. Một biến thể xê dịch dù một hạng là trang kiểm chứng nói dối.</p>
+  </div>
+
+  <h3>Ba cách giữ ràng buộc đó bằng cấu trúc</h3>
+  <ol>
+    <li>Biến thể chỉ trả về hai thứ — <span class="mono">drama</span> (các núm của lớp đạo diễn) và <span class="mono">stage</span> (các cờ của lớp trình diễn). Không có đường nào dẫn tới <span class="mono">finalOrder</span>. Đây là kiến trúc hai lớp một chiều ở §4, áp thêm một tầng.</li>
+    <li>Mọi núm đều là <strong>hệ số nhân mặc định 1.0</strong>. Nhân với 1.0 là phép toán chính xác trong dấu phẩy động, nên "không bật biến thể nào" cho ra cuộc đua giống hệt <em>từng bit</em> bản chưa có tính năng này.</li>
+    <li><span class="mono">tools/race/modes-selftest.mjs</span> chứng minh lại bằng máy: 1 332 lượt dựng trên mọi biến thể đơn lẻ và mọi cặp, tất cả về đích đúng thứ hạng đã chốt.</li>
+  </ol>
+
+  <h3>Thư viện</h3>
+  <p>Biến thể được bốc <strong>xác định theo seed</strong>, không theo đồng hồ: lượt chạy thử ở nhà và lượt chạy thật trước cả phòng phải giống hệt nhau kể cả phần kể chuyện, nếu không thì buổi chạy thử chẳng chứng minh được gì. Quản trò vẫn chọn tay được, hoặc tắt hẳn.</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Biến thể</th><th class="mono">Loại</th><th>Đổi cái gì</th><th class="mono">Lệch bản chuẩn</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>◆ Chuẩn</td><td class="mono">chuẩn</td><td>Nhịp kể chuyện gốc của §5.</td><td class="mono">0%</td></tr>
+        <tr><td>⇉ Bám đuôi</td><td class="mono">nhịp</td><td>Đàn bó cụm hơn, biên độ xáo trộn cao hơn — ngôi đầu đổi tới tận mét cuối cùng.</td><td class="mono">2,00%</td></tr>
+        <tr><td>▮ Nghẹt thở</td><td class="mono">nhịp</td><td>Khe hở của hai cặp quyết định siết còn một nửa, nước rút mạnh hơn.</td><td class="mono">0,50%</td></tr>
+        <tr><td>➤ Bỏ trốn</td><td class="mono">nhịp</td><td>Kẻ dẫn đầu giả rơi sâu hơn, đàn giãn hơn — một chú bứt hẳn rồi sụp.</td><td class="mono">1,12%</td></tr>
+        <tr><td>☂ Đêm mưa</td><td class="mono">cảnh</td><td>Sân ướt dưới đèn pha. Lớp đạo diễn không hề biết.</td><td class="mono">0%</td></tr>
+        <tr><td>✷ Pháo hoa</td><td class="mono">cảnh</td><td>Bậc ăn mừng kéo hết cỡ: chớp mạnh hơn, đóng băng lâu hơn, giấy màu.</td><td class="mono">0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Biến thể loại <strong>cảnh</strong> an toàn về kết quả theo nghĩa đen: chúng còn không được truyền vào <span class="mono">buildRace</span>, và cửa kiểm thử xác nhận chúng không xê dịch một mẫu vị trí nào. Biến thể loại <strong>nhịp</strong> thì có, nên chúng phải qua lại toàn bộ cửa kịch tính ở §12 — thứ hạng đúng, không chuyển động lùi, không lộ người thắng trước mốc 80%, ít nhất ba lần đổi ngôi, về đích sát nút ở ≥70% số lượt.</p>
+
+  <div class="note">
+    <span class="lbl">Phép đo "có khác thật không"</span>
+    <p>Một biến thể chỉ đổi cái tên chứ không đổi cuộc đua thì tệ hơn là không có: nó hứa với cả phòng một điều mà nó không giao. Ba chỉ số tóm tắt thử đầu tiên — số lần đổi ngôi, khe hở về đích, hạng của kẻ dẫn đầu giả — đều báo "không khác gì" cho hai biến thể thật sự có khác; hai cuộc đua hoàn toàn khác nhau vẫn có thể cùng đổi ngôi 4,6 lần. Cột <span class="mono">lệch bản chuẩn</span> ở trên vì vậy so sánh thẳng <em>đường chạy</em>: chênh lệch trung bình của vị trí từng con ở từng mẫu, so với cùng seed chạy bản chuẩn. Ngưỡng đạt là 0,2% chiều dài đường đua — với 45 chú chó thì một hạng chiếm khoảng 0,65%, nên đó là mức mắt thường thấy được.</p>
+  </div>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 16 ============ -->
+<section id="s16">
+  <p class="eyebrow">Sân và va chạm</p>
+  <h2><span class="num">16</span>Sân thẳng và lớp cắn nhau</h2>
+
+  <h3>Vì sao bỏ sân oval</h3>
+  <p>§7 kết luận sân oval là chế độ duy nhất, dựa trên tiền đề <em>mỗi người một làn</em>. Tiền đề đó sai. Đường thẳng không bắt buộc mỗi người một làn — nó chỉ bắt buộc mỗi làn một dải ngang, và số làn thì muốn bao nhiêu cũng được, vì thứ giới hạn là chiều cao khung hình chứ không phải hình học.</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th class="mono">Số người</th><th class="mono">Làn (oval)</th><th class="mono">Con mỗi làn</th><th class="mono">Làn (thẳng)</th><th class="mono">Con mỗi làn</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">8</td><td class="mono">7</td><td class="mono">1,1</td><td class="mono">6</td><td class="mono">1,3</td></tr>
+        <tr><td class="mono">45</td><td class="mono">7</td><td class="mono">6,4</td><td class="mono">13</td><td class="mono">3,5</td></tr>
+        <tr><td class="mono">150</td><td class="mono">7</td><td class="mono">21,4</td><td class="mono">23</td><td class="mono">6,5</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Hai thứ nữa được đổi kèm, cả hai đều thuộc về khả năng đọc chứ không phải thẩm mỹ:</p>
+  <ul>
+    <li><strong>Khúc cua ăn mất bề ngang.</strong> Đúng lúc đàn chó vào cua thì cả cụm bị nén lại theo phương nhìn — và cua lại thường là chỗ có cú vượt. Trên đường thẳng, khoảng cách theo chiều ngang màn hình đọc thẳng ra thành thứ hạng, ở mọi thời điểm.</li>
+    <li><strong>Xếp làn đều thay vì băm tên.</strong> Bản oval lấy dư của mã băm tên chia cho số làn, cho phân bố lệch — với 150 người và 23 làn thì có làn mười con, có làn ba. Bản thẳng xáo trộn theo seed rồi chia vòng tròn: đều tuyệt đối. <strong>Không được lấy thẳng chỉ số chó chia dư</strong> — chó đánh số theo hạng cuối, nên người thắng sẽ luôn nằm ở làn đầu tiên, và sau dăm buổi lễ sẽ có người nhận ra.</li>
+  </ul>
+
+  <p>Mức phóng máy quay cũng không còn là hằng số. Sân thẳng có chiều cao đổi theo số làn, nên máy quay tự căn để vừa cả chiều cao đường đua lẫn bề ngang của đàn lúc giãn nhất — độ giãn lấy từ chính cuộc đua vừa dựng, không phải từ một công thức chép lại.</p>
+
+  <h3>Lớp cắn nhau</h3>
+  <p>Chó cắn nhau để vượt lên. Con bị cắn trúng ngã ra, <strong>nằm quay đơ hai giây</strong>, rồi bò dậy đuổi theo. Thuần tuý cho vui.</p>
+
+  <div class="note warn">
+    <span class="lbl">Phần nguy hiểm nhất của cả kho mã</span>
+    <p>Mọi thứ khác ở lớp trình diễn chỉ đổi cách <em>kể lại</em> một kết quả đã chốt. Lớp này đổi <strong>vị trí của một chú chó trên màn hình</strong> — mà vị trí trên màn hình chính là thứ khán giả đọc ra thành thứ hạng. Làm ẩu một chút là buổi lễ công bố một người, còn <span class="mono">web/verify.html</span> tính ra một người khác.</p>
+  </div>
+
+  <p>Bốn ràng buộc, giữ bằng cấu trúc chứ không bằng lời hứa:</p>
+  <ol>
+    <li><strong>Độ tụt một chiều.</strong> Con bị cắn tụt lại; không con nào được đẩy lên <em>trước</em> vị trí lớp đạo diễn đã định. Cú vượt của kẻ cắn là hệ quả của việc nạn nhân tụt, không phải một khoản thưởng.</li>
+    <li><strong>Mọi độ tụt về 0 trước vạch đích.</strong> Lịch cắn từ chối mọi cú mà vòng đời chưa kịp khép lại trước lúc chạm vạch, nên thứ hạng về đích trên màn hình luôn đúng bằng thứ hạng đã chốt.</li>
+    <li><strong>Không ai cắn con đang dẫn đầu</strong> — kể cả con <em>sẽ</em> dẫn đầu trong lúc nó còn đang nằm. Ràng buộc này phải nhìn tới trước: một con đang hạng ba lúc bị cắn hoàn toàn có thể lên hạng nhất ở giây thứ hai của cú đơ, và lúc đó con phía sau lên dẫn đầu trên màn hình mà không hề dẫn đầu trong đường chạy — ràng buộc "không lộ người thắng trước mốc 80%" sập ngay tại đó.</li>
+    <li><strong>Lịch cắn tính sẵn từ đường chạy.</strong> Sinh theo từng khung hình thì nó phụ thuộc nhịp khung hình của máy, và hai lần mở cùng một seed sẽ ra hai cuộc đua khác nhau — mất luôn tính tái tạo được, thứ mà cả dự án dựng lên để có.</li>
+  </ol>
+
+  <h3>Mô hình độ tụt — hai lần làm sai trước khi đúng</h3>
+  <p>Đây là chỗ đáng ghi lại nhất của cả mục này, vì cả hai bản sai đều <em>trông</em> hợp lý.</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Bản</th><th>Mô hình</th><th class="mono">Tốc độ lùi</th><th>Vì sao sai</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">1</td>
+          <td>Đặt sẵn một "độ tụt tối đa" rồi kéo con chó về đó trong 0,18 giây.</td>
+          <td class="mono">−13×</td>
+          <td>Không phải vấp ngã, mà là teleport.</td>
+        </tr>
+        <tr>
+          <td class="mono">2</td>
+          <td>Vẫn đặt sẵn, nhưng tính theo <em>thân chó</em> thay vì theo tỉ lệ đường đua.</td>
+          <td class="mono">−6,2×</td>
+          <td>"Một thân chó" chẳng liên quan gì tới việc chú chó đó chạy nhanh bao nhiêu. Ở cuộc đua 55 giây thì một thân chó là rất nhiều giây.</td>
+        </tr>
+        <tr>
+          <td class="mono">3</td>
+          <td><strong>Không đặt trước độ tụt.</strong> Con chó bị va thì lùi lại một quãng ngắn tính bằng <em>giây quãng đường</em>, rồi <em>đứng im</em> — độ tụt lớn dần lên hoàn toàn vì cả đàn vẫn đang chạy.</td>
+          <td class="mono">−0,83×</td>
+          <td>Đúng.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Bài học chung: khi một hiệu ứng phải trông như vật lý, đừng đặt trước <em>kết quả</em> rồi nội suy tới đó. Đặt trước <em>nguyên nhân</em> — ở đây là "đứng im" — rồi để kết quả tự sinh ra. Hai giây sau, độ tụt đúng bằng quãng đường lớp đạo diễn đã cho nó đi trong hai giây đó. Không con số nào phải bịa ra, và cú đơ đọc ra đúng như một cú đơ vì nó thật sự đứng yên trên màn hình.</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Giai đoạn</th><th class="mono">Thời lượng</th><th>Trên màn hình</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Loạng choạng</td><td class="mono">0,18 s</td><td>Trượt lùi chậm hơn tốc độ chạy, thân nghiêng dần tới 79°.</td></tr>
+        <tr><td>▣ Nằm đơ</td><td class="mono">2,00 s</td><td>Đứng im tuyệt đối, ba ngôi sao quay trên đầu, cả đàn tràn qua.</td></tr>
+        <tr><td>Bò dậy đuổi theo</td><td class="mono">3,00 s</td><td>Dậy trong 0,45 s đầu, rồi phi tới 2,2× tốc độ chạy, êm hai đầu.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Cú cắn được bốc từ những cặp <strong>vừa thật sự vượt nhau</strong> trong nửa giây trước đó, ở hai làn kề bên. Nó là lời <em>giải thích</em> cho một cú vượt vốn đã sắp xảy ra, không phải nguyên nhân tạo ra nó — nên nó không bịa thêm chuyển động nào mà đường chạy chưa có. Một phần ba số cơ hội bị bỏ qua: nếu cú vượt nào cũng kèm một cú cắn thì cắn nhau thành luật vật lý của cuộc đua chứ không còn là chuyện bất ngờ.</p>
+
+  <p>Phản hồi để ở <strong>bậc vừa</strong> — tiếng va trầm, chớp máy quay, rung tay, bụi tung — nhưng <em>không</em> rung màn hình. Rung màn hình dành riêng cho khung va chạm ở vạch đích; nếu một cú cắn ở giây thứ mười cũng rung màn hình thì tới lúc về đích chẳng còn bậc nào để leo lên nữa.</p>
+
+  <h3>Cửa kiểm thử</h3>
+  <p><span class="mono">npm run bite</span> — 50 cuộc đua, 260 cú cắn. Ràng buộc quan trọng nhất <strong>không được suy ra</strong> từ bốn ràng buộc trên: nó được kiểm bằng vét cạn, trên chính con số mắt người sẽ nhìn thấy — thứ hạng <em>hiển thị</em> lúc về đích, so với thứ hạng đã chốt. Kèm theo: chỉ con đang bị cắn mới được lùi lại (1 560 mẫu lùi, không mẫu nào ngoài vòng đời cú cắn), và tốc độ hiển thị luôn nằm trong khoảng −0,83× tới +2,23× tốc độ chạy.</p>
+</section>
+
+<hr class="hr">
+
+<!-- ============ 17 ============ -->
+<section id="s17">
   <p class="eyebrow">Cần chốt</p>
-  <h2><span class="num">15</span>Câu hỏi mở</h2>
+  <h2><span class="num">17</span>Câu hỏi mở</h2>
   <ol>
     <li><strong>Chiếc laptop nào sẽ chạy ở phòng họp?</strong> Cửa hiệu năng ở §11 phải đo trên đúng máy đó, không phải trên máy phát triển. Cần biết cấu hình trước M1 để không dựng ngân sách khung hình dựa trên phần cứng sai.</li>
     <li><strong>Một buổi lễ quay mấy lượt?</strong> Nếu nhiều lượt liên tiếp, màn điểm danh toàn sân ở §3 nên bỏ từ lượt thứ hai — 15 giây × 5 lượt là một phút rưỡi lặp lại đúng một nội dung.</li>

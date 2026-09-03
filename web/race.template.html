@@ -60,6 +60,22 @@ input:focus,textarea:focus{outline:2px solid var(--turf);outline-offset:1px}
 #setupErr{color:var(--danger);font-size:13px;margin-top:10px;display:none}
 #setupErr.on{display:block}
 
+select{
+  width:100%;font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--paper);color:var(--ink);border:1px solid var(--rail);
+  border-radius:4px;padding:9px 10px;
+}
+select:focus{outline:2px solid var(--turf);outline-offset:1px}
+
+/* Biển báo biến thể. Hiện trong lúc đua để cả phòng biết lượt này khác ở chỗ
+   nào — một biến thể không ai thấy thì không phải một biến thể. */
+#variant{
+  display:none;margin-top:7px;padding:5px 11px;border-radius:999px;
+  background:var(--turf-soft);border:1px solid var(--turf);color:var(--turf);
+  font-size:12px;font-weight:700;letter-spacing:.04em;align-self:flex-start;
+}
+#variant.on{display:inline-block}
+
 #stage{position:fixed;inset:0}
 canvas{display:block;width:100%;height:100%}
 
@@ -98,21 +114,91 @@ canvas{display:block;width:100%;height:100%}
   font-size:clamp(90px,20vw,220px);font-weight:800;color:var(--lure);z-index:20;
   pointer-events:none;text-shadow:0 8px 0 rgba(0,0,0,.45)}
 
+/* ------------------------------------------------------------------ bục vinh danh
+
+   Ba bậc, công bố NGƯỢC từ hạng ba lên hạng nhất. Thứ tự đó không phải chuyện
+   thẩm mỹ: công bố xuôi thì tên người thắng ra trước, và ba giây còn lại của
+   màn công bố không còn ai quan tâm nữa. Ngược lại thì mỗi bậc là một nhịp, và
+   nhịp cuối cùng là nhịp đáng giá nhất.
+
+   Huy chương vàng bạc đồng vẽ bằng CSS chứ không dùng emoji: emoji mỗi hệ điều
+   hành vẽ một kiểu, và trên Windows chúng ra màu mè lạc hẳn khỏi bảng màu —
+   thấy rõ nhất đúng lúc phóng lên máy chiếu. Cùng lý lẽ với bộ icon SVG ở
+   tools/web/icons.mjs.                                                        */
 #podium{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;
-  background:rgba(14,18,15,.93)}
+  overflow-y:auto;background:radial-gradient(120% 90% at 50% 0%,rgba(36,52,40,.97),rgba(10,14,11,.97))}
 #podium.on{display:flex}
-#podium .inner{text-align:center;max-width:640px;padding:24px}
+#podium .inner{text-align:center;width:100%;max-width:680px;margin:auto;padding:24px;
+  position:relative;z-index:1}
 #podium h2{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
-#podium .prize{font-size:22px;color:var(--lure);margin:0 0 24px;font-weight:600}
-#podium .w{display:flex;align-items:center;gap:14px;background:var(--surface);
-  border:1px solid var(--rail);border-radius:7px;padding:14px 18px;margin-bottom:9px;text-align:left;
-  opacity:0;transform:translateY(14px) scale(.96);
-  animation:pop .5s var(--ease-pop) forwards}
-@keyframes pop{to{opacity:1;transform:none}}
-#podium .w .rank{font-size:26px;font-weight:800;color:var(--turf);width:52px;font-variant-numeric:tabular-nums}
-#podium .w .nm{font-size:20px;font-weight:600}
+#podium .prize{font-size:22px;color:var(--lure);margin:0 0 22px;font-weight:600}
 #podium .seed{margin-top:20px;font-size:11.5px;color:var(--ink-3);word-break:break-all}
 #podium .btns{margin-top:22px;display:flex;gap:10px;justify-content:center}
+
+/* Ba bậc xếp theo hạng 2 – 1 – 3, đúng cách một cái bục thật xếp. */
+#podTop{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:14px}
+#podTop:empty{display:none}
+.tier{flex:1 1 0;min-width:0;max-width:180px;display:flex;flex-direction:column;align-items:center;
+  opacity:0;transform:translateY(30px);
+  animation:tierIn .62s var(--ease-pop) var(--d,0s) forwards}
+@keyframes tierIn{to{opacity:1;transform:none}}
+
+.medal{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;position:relative;
+  box-shadow:0 4px 0 rgba(0,0,0,.4),inset 0 -3px 0 rgba(0,0,0,.16),inset 0 3px 0 rgba(255,255,255,.35)}
+/* Dải ruy băng sau huy chương: hai mảnh chéo, cắt bằng clip-path. */
+.medal::before{content:"";position:absolute;top:-15px;left:50%;translate:-50% 0;
+  width:30px;height:20px;border-radius:2px;background:currentColor;opacity:.55;
+  clip-path:polygon(0 0,34% 0,50% 62%,66% 0,100% 0,100% 100%,0 100%)}
+.m1{background:radial-gradient(circle at 34% 26%,#fff1c0,#f2c14e 54%,#c08a13);color:#7a5a06}
+.m2{background:radial-gradient(circle at 34% 26%,#ffffff,#d2d9e0 54%,#8f9ba6);color:#5c6771}
+.m3{background:radial-gradient(circle at 34% 26%,#f7cba4,#d9884f 54%,#9c5019);color:#7a3f11}
+.tier .nm{margin-top:9px;font-size:16px;font-weight:700;line-height:1.25;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tier .sw{width:13px;height:13px;border-radius:4px;margin-top:7px;
+  box-shadow:0 0 0 2px rgba(255,255,255,.14)}
+.tier .block{width:100%;margin-top:11px;border-radius:9px 9px 2px 2px;
+  display:flex;align-items:flex-start;justify-content:center;padding-top:9px;
+  font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,var(--surface-2),var(--surface));
+  border:1px solid var(--rail);border-bottom:none}
+.t1 .block{height:124px;border-color:#f2c14e;color:#f2c14e;
+  background:linear-gradient(180deg,rgba(242,193,78,.20),rgba(242,193,78,.05))}
+.t2 .block{height:88px;border-color:#a9b4bd;color:#c3ccd4;
+  background:linear-gradient(180deg,rgba(190,203,214,.16),rgba(190,203,214,.04))}
+.t3 .block{height:66px;border-color:#b3703f;color:#dc9a67;
+  background:linear-gradient(180deg,rgba(217,136,79,.16),rgba(217,136,79,.04))}
+.t1 .medal{width:70px;height:70px;font-size:27px}
+.t1 .nm{font-size:19px}
+
+/* Hạng 4 trở đi: danh sách thường, không huy chương. Chỉ ba bậc đầu mới là bục. */
+#podList{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+#podium .w{display:flex;align-items:center;gap:14px;background:var(--surface);
+  border:1px solid var(--rail);border-radius:7px;padding:12px 16px;text-align:left;
+  opacity:0;transform:translateY(14px) scale(.96);
+  animation:pop .5s var(--ease-pop) var(--d,0s) forwards}
+@keyframes pop{to{opacity:1;transform:none}}
+#podium .w .rank{font-size:20px;font-weight:800;color:var(--ink-3);width:44px;font-variant-numeric:tabular-nums}
+#podium .w .nm{font-size:17px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Giấy màu của biến thể "Pháo hoa". Chỉ động tới transform và opacity — nó rơi
+   trong lúc trang đang chạy animation của ba bậc, nên nó không được đụng layout. */
+#confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+#confetti i{position:absolute;top:-8%;width:9px;height:15px;border-radius:2px;
+  animation:fall linear var(--dur) var(--d) infinite}
+@keyframes fall{
+  0%{transform:translateY(0) rotate(0);opacity:0}
+  8%{opacity:1}
+  100%{transform:translateY(110vh) rotate(760deg);opacity:.9}
+}
+
+@media(max-width:560px){
+  #podTop{gap:6px}
+  .tier .block{font-size:21px}
+  .t1 .medal{width:58px;height:58px;font-size:23px}
+  .medal{width:46px;height:46px;font-size:18px}
+}
 
 /* Màn mở: tan ra từ đúng màu mà trang chọn trò chơi đã rửa vào. */
 #veil{
@@ -136,7 +222,10 @@ canvas{display:block;width:100%;height:100%}
 @keyframes tookIn{from{opacity:0;transform:translate(-50%,14px) scale(.9)}}
 
 @media (prefers-reduced-motion:reduce){
-  #podium .w{animation-duration:.01s}
+  /* Vẫn công bố LẦN LƯỢT — nhịp công bố là nội dung, không phải trang trí. Chỉ
+     bỏ phần nảy và phần rơi. */
+  #podium .w,.tier{animation-duration:.14s;animation-timing-function:var(--ease-out)}
+  #confetti{display:none}
   button{transition:none}
 }
 </style>
@@ -167,6 +256,11 @@ canvas{display:block;width:100%;height:100%}
           <label for="dur">Thời lượng (giây)</label>
           <input type="number" id="dur" value="40" min="20" max="70">
         </div>
+      </div>
+      <div style="margin-top:14px">
+        <label for="mode">Biến thể cuộc đua</label>
+        <select id="mode"></select>
+        <p class="hint" id="modeHint"></p>
       </div>
       <div style="margin-top:14px">
         <label for="prize">Tên giải thưởng</label>
@@ -200,6 +294,7 @@ canvas{display:block;width:100%;height:100%}
     <div class="big" id="clock">0.0s</div>
     <div class="meta" id="meta"></div>
     <div class="meta" id="nowPlaying"></div>
+    <div id="variant"></div>
   </div>
   <div class="ctrls">
     <button id="pause" class="ghost"></button>
@@ -213,9 +308,11 @@ canvas{display:block;width:100%;height:100%}
 <div id="paused">TẠM DỪNG</div>
 
 <div id="podium">
+  <div id="confetti"></div>
   <div class="inner">
     <h2>Kết quả</h2>
     <p class="prize" id="podPrize"></p>
+    <div id="podTop"></div>
     <div id="podList"></div>
     <div class="seed mono" id="podSeed"></div>
     <div class="btns">
@@ -235,38 +332,15 @@ canvas{display:block;width:100%;height:100%}
 // đó thay vì đi đổi tên từng cái một.
 (function () {
 
-// =========================================================================
-//  Hình học đường đua: một sân oval kiểu sân vận động — hai đoạn thẳng nối
-//  bởi hai nửa đường tròn. Vạch xuất phát trùng vạch đích, đúng như đua thật.
-// =========================================================================
-const TRACK_R = 250;
-const TRACK_L = 620;
-const PERIM = 2 * TRACK_L + 2 * Math.PI * TRACK_R;
-const ARC = Math.PI * TRACK_R;
-const LANES = 7;
-const LANE_W = 26;
-
-function pointAt(prog, laneOffset) {
-  let s = prog * PERIM;
-  s = ((s % PERIM) + PERIM) % PERIM;
-  const rr = TRACK_R + laneOffset;
-
-  if (s < TRACK_L) {
-    return { x: -TRACK_L / 2 + s, y: rr, a: 0 };
-  }
-  if (s < TRACK_L + ARC) {
-    const psi = Math.PI / 2 - (s - TRACK_L) / TRACK_R;
-    return { x: TRACK_L / 2 + rr * Math.cos(psi), y: rr * Math.sin(psi), a: -psi };
-  }
-  if (s < 2 * TRACK_L + ARC) {
-    return { x: TRACK_L / 2 - (s - TRACK_L - ARC), y: -rr, a: Math.PI };
-  }
-  const psi = -Math.PI / 2 - (s - 2 * TRACK_L - ARC) / TRACK_R;
-  return { x: -TRACK_L / 2 + rr * Math.cos(psi), y: rr * Math.sin(psi), a: -psi };
-}
-
-/** Màu lông suy ra từ tên — cùng một người luôn cùng một màu, xem GDD §9. */
-/* GEO-END — mốc cho tools/race/check-race-page.mjs, đừng xoá */
+// Hình học đường đua đến từ tools/race/track.mjs, nhúng ở trên cùng phần thuật
+// toán. Nó rời khỏi file này vì nó là đường đi NÓNG NHẤT của cả trang — mỗi
+// khung hình một lần cho mỗi con, 9 000 lần mỗi giây ở đàn 150 — và thứ nằm
+// trong một file HTML thì không đo được bằng máy. Cửa hiệu năng ở
+// tools/race/perf-selftest.mjs cần gọi thẳng vào nó.
+//
+// Đường đi nóng của một khung hình nằm ở tools/race/perf.mjs, sân nướng sẵn ở
+// tools/race/stage.mjs, còn lớp cảm giác của phần thân cuộc đua ở
+// tools/race/juice.mjs. Cả ba đều có cửa riêng.
 
 // Ngoại hình và sprite đến từ tools/web/dog.mjs — cùng hệ nhận diện với
 // minigame kia, nên một người luôn là cùng một chú chó ở cả hai trò.
@@ -315,6 +389,14 @@ function fireImpact() {
   audio.noise({ dur: 0.5, gain: 0.2, cutoff: 2600 });
   audio.tone({ freq: audio.vary(880), dur: 0.5, type: "triangle", gain: 0.1, at: 0.05 });
   buzz([30, 40, 90]);
+
+  // Giấy màu của biến thể "Pháo hoa". Bắn từ chỗ người thắng chứ không từ giữa
+  // màn hình: bậc ăn mừng phải chỉ vào người được ăn mừng.
+  if (dust && state && state.stage.confetti && state.phase === "run") {
+    const fs = frameState;
+    const w = fs.order[0];
+    dust.spawn(fs.px[w], fs.py[w], 60, Math.cos(fs.pa[w]), Math.sin(fs.pa[w]), 2.2);
+  }
 }
 
 function decayFx(dtReal) {
@@ -323,7 +405,11 @@ function decayFx(dtReal) {
   fx.punch = Math.max(0, fx.punch - dtReal / 0.55);
 }
 
-const shakeOffset = (nowSec) => shakeAt(nowSec, fx.shake, SHAKE_MOTION);
+// Biến thể nhân vào BIÊN ĐỘ, không nhân vào fx.shake. Hai chỗ này khác nhau ở
+// chỗ fx.shake còn là đầu vào của đường cong bình phương trong shakeAt — đẩy nó
+// lên quá 1 là ra khỏi vùng mà đường cong đó được thiết kế cho.
+const shakeOffset = (nowSec) =>
+  shakeAt(nowSec, fx.shake, SHAKE_MOTION * (state ? state.stage.shakeMult : 1));
 
 // =========================================================================
 //  Trạng thái
@@ -337,26 +423,71 @@ const nowPlayingEl = document.getElementById("nowPlaying");
 const railEl = document.getElementById("rail");
 let state = null;
 let dpr = 1;
+let cssW = 0;
+let cssH = 0;
 let railKey = "";
 
 // Bộ đệm dùng lại, cấp phát một lần mỗi cuộc đua. Dựng mảng mới mỗi khung hình
 // là nguyên nhân phổ biến nhất của "juice làm giật", chứ không phải hiệu ứng.
-let posBuf = null;
-let idxBuf = null;
-let pxBuf = null;
-let pyBuf = null;
+//
+// Toàn bộ phép tính của một khung hình — nội suy, xếp hạng, chiếu toạ độ, cắt
+// bớt phần ngoài khung hình — nằm ở tools/race/perf.mjs, cùng bộ đệm này.
+let frameState = null;
 let nameW = null;
 let candPool = null;
 let cands = null;
+let phases = null;
+let beats = null;
+let dust = null;
+let bites = null;
+let nextBite = 0;
 const placedOut = [];
+
+// Sân đã nướng. Nướng một lần cho cả phiên chứ không phải mỗi lượt: nó không
+// phụ thuộc vào danh sách người tham gia, và một tấm 2 688 × 1 448 điểm ảnh thì
+// nướng lại giữa buổi là một khoảng khựng ai cũng thấy.
+//
+// Nướng lại khi SỐ LÀN hoặc KIỂU TRỜI đổi — màu mặt cỏ đi cùng bảng màu trời,
+// nên một lượt "Đêm mưa" không được lát lại cái sân đã nướng cho trời sáng.
+let trackTile = null;
+
+// Lớp trời: nền, bóng mây, vệt nắng. Xem tools/race/sky.mjs — cả ba đều chạy
+// mỗi khung hình và đều có cửa đo bằng máy ở tools/race/sky-selftest.mjs.
+//
+// Vệt mờ nướng MỘT LẦN cho cả phiên và dùng chung cho cả bóng mây lẫn vệt nắng:
+// chúng là cùng một hình, chỉ khác màu tô và chế độ hoà. Hai ảnh nướng cho cùng
+// một hình là tốn gấp đôi bộ nhớ ảnh để được đúng cái đã có.
+let softBlob = null;
+let sunBlob = null;
+let backdrop = null;
+const cloudScratch = { x: 0, y: 0, r: 0 };
+
+/**
+ * Canvas ngầm để nướng ảnh.
+ *
+ * Các module nướng — tools/race/stage.mjs và tools/race/sky.mjs — nhận hàm này
+ * thay vì tự gọi document.createElement, để chúng chạy được ngoài trình duyệt và
+ * đo được bằng máy. Đây là chỗ duy nhất trong trang biết tới cái DOM đó.
+ */
+function makeOffscreen(w, h) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+}
 
 const LABEL_FONT = "600 13px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif";
 const LABEL_H = 19;
 
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.floor(cv.clientWidth * dpr);
-  cv.height = Math.floor(cv.clientHeight * dpr);
+  // Đọc clientWidth là một lần buộc trình duyệt tính lại bố cục. Đọc ở đây thì
+  // một lần mỗi lần đổi cỡ cửa sổ; đọc trong render thì sáu mươi lần mỗi giây,
+  // ngay giữa vòng lặp mà cả đợt tối ưu này đang cố làm cho rẻ.
+  cssW = cv.clientWidth;
+  cssH = cv.clientHeight;
+  cv.width = Math.floor(cssW * dpr);
+  cv.height = Math.floor(cssH * dpr);
 }
 window.addEventListener("resize", resize);
 
@@ -372,13 +503,19 @@ function startRace() {
   err.classList.remove("on");
   audio.unlock();
 
-  let drawResult, race;
+  let drawResult, race, variant;
   const prize = document.getElementById("prize").value;
   const topK = Math.max(1, Number(document.getElementById("k").value) || 3);
   const durationSec = Math.max(20, Number(document.getElementById("dur").value) || 40);
   try {
     drawResult = draw(buildRoster(), prize);
-    race = buildRace(drawResult.finalOrder, drawResult.seedHex, { topK, durationSec });
+    // Biến thể bốc XÁC ĐỊNH theo seed: cùng danh sách và cùng tên giải thì lượt
+    // chạy thử ở nhà và lượt chạy thật trước cả phòng giống hệt nhau, kể cả
+    // phần kể chuyện. Luồng ngẫu nhiên của nó tách khỏi lớp xếp hạng, nên đổi
+    // biến thể không bao giờ đổi được người thắng — xem tools/race/modes.mjs.
+    variant = readModeChoice(drawResult.seedHex);
+    race = buildRace(drawResult.finalOrder, drawResult.seedHex,
+                     { topK, durationSec, drama: variant.drama });
   } catch (e) {
     err.textContent = e.message;
     err.classList.add("on");
@@ -386,10 +523,13 @@ function startRace() {
   }
 
   const n = race.n;
-  const lanes = new Float64Array(n);
-  for (let i = 0; i < n; i++) {
-    lanes[i] = ((hashCode(race.finalOrder[i] + "#lane") % LANES) - (LANES - 1) / 2) * LANE_W;
-  }
+
+  // Số làn co giãn theo số người, và làn được chia ĐỀU bằng cách xáo trộn rồi
+  // chia vòng tròn — xem chú thích dài ở assignLanes trong tools/race/track.mjs.
+  // Băm tên rồi lấy dư như bản oval cho phân bố lệch, mà cả lý do chuyển sang
+  // đường thẳng là để đàn chó giãn đều ra.
+  const laneCount = lanesFor(n);
+  const lanes = assignLanes(n, drawResult.seedHex, laneCount);
 
   // Nướng sprite MỘT LẦN. Mỗi khung hình sau đó chỉ còn hai lệnh drawImage cho
   // mỗi con, thay vì mười lệnh vẽ đường — xem chú thích đầu dog.mjs.
@@ -399,32 +539,90 @@ function startRace() {
   // Đàn ít người thì vẽ to hơn, để biển tên trên lưng đọc được.
   const dogScale = Math.max(0.34, Math.min(0.66, 0.70 - n * 0.0019));
 
-  posBuf = new Float64Array(n);
-  idxBuf = new Int32Array(n);
-  pxBuf = new Float64Array(n);
-  pyBuf = new Float64Array(n);
+  // Sân đua là hình TĨNH suốt 40 giây, nên nướng sẵn. Nướng MỘT KHOANH rồi lát
+  // ngang, không nướng cả tấm: sân thẳng dài 4 200 đơn vị, nướng cả tấm ở 2× là
+  // một ảnh rộng 8 480 điểm ảnh, và có trình duyệt trần chỉ 4 096. Xem chú
+  // thích đầu tools/race/stage.mjs.
+  //
+  // Nướng lại khi số làn đổi, tức là khi số người đổi — không phải mỗi lượt.
+  const sky = skyPalette(variant.stage.sky);
+  if (!trackTile || trackTile.lanes !== laneCount || trackTile.sky !== sky.id) {
+    trackTile = bakeTile(makeOffscreen, laneCount, 2, sky.id);
+  }
+  if (!softBlob) {
+    softBlob = bakeSoftBlob(makeOffscreen, 512, "10,22,14");
+    sunBlob = bakeSoftBlob(makeOffscreen, 512, "255,255,255");
+  }
+  backdrop = null;
+
+  frameState = makeFrameState(n);
+  beats = makeBeatWatcher({ topK });
+
+  // Lịch cắn nhau, TÍNH SẴN từ đường chạy. Không sinh ra lúc chạy: sinh theo
+  // từng khung hình thì nó phụ thuộc nhịp khung hình của máy, và hai lần mở
+  // cùng một seed sẽ ra hai cuộc đua khác nhau. Xem tools/race/bite.mjs.
+  bites = buildBites(race, drawResult.seedHex, lanes, { enabled: !REDUCED });
+  nextBite = 0;
+  // Giảm chuyển động thì tắt hẳn hạt bụi — nó là kênh gây chóng mặt nhiều thứ
+  // hai sau rung màn hình. Tiếng và rung tay vẫn giữ nguyên: điều khoản của lớp
+  // cảm giác là hạ biên độ, không bao giờ cắt phản hồi về không.
+  dust = REDUCED ? null : makeDust(180);
   ctx.font = LABEL_FONT;
   nameW = new Float64Array(n);
   for (let i = 0; i < n; i++) nameW[i] = ctx.measureText(race.finalOrder[i]).width + 14;
   candPool = [];
   for (let i = 0; i < n; i++) candPool.push({ key: i, x: 0, y: 0, w: 0, h: LABEL_H, priority: 1 });
   cands = [];
+  phases = new Float64Array(n);
+  for (let i = 0; i < n; i++) phases[i] = gallopPhase(hashCode(race.finalOrder[i]) % 997);
+
+  // Mức phóng tự căn theo cảnh, thay cho hằng số 1,45 của bản oval.
+  //
+  // Sân thẳng có chiều cao đổi theo số làn — 6 làn với 8 người, 23 làn với 150
+  // — nên một mức phóng cố định thì hoặc bỏ trống nửa màn hình ở đàn nhỏ, hoặc
+  // cắt cụt hai mép ở đàn đông. Căn theo cả hai chiều rồi lấy cái chặt hơn:
+  // chiều cao phải đủ chỗ cho mọi làn, chiều ngang phải đủ chỗ cho cả đàn lúc
+  // giãn nhất.
+  //
+  // Độ giãn lấy từ CHÍNH cuộc đua vừa dựng, không phải từ một công thức chép
+  // lại — lấy công thức thì nó lệch khỏi lớp đạo diễn ngay lần ai đó chỉnh
+  // hồ sơ độ giãn.
+  const packSpread = race.progressOf(0, race.finishSample) -
+                     race.progressOf(n - 1, race.finishSample);
+  const fitZoom = () => {
+    // Khoảng chừa 250 đơn vị, không phải 170: vành cỏ quanh đường chạy giờ mang
+    // vành đá, dải cỏ cắt và hàng rào cây (tools/race/stage.mjs), và một cái sân
+    // bị cắt đúng ở mép đường chạy thì mọi thứ đó nằm ngoài khung hình. Chừa
+    // rộng ra đổi lấy đàn chó nhỏ đi chừng 5% ở đàn đông nhất — cái giá rẻ hơn
+    // hẳn so với việc không ai thấy cái sân.
+    const zh = cssH / (2 * trackHalfH(laneCount) + 250);
+    const zw = cssW / (packSpread * TRACK_LEN + 340);
+    const z = Math.min(zh, zw);
+    return z < 0.85 ? 0.85 : z > 2.4 ? 2.4 : z;
+  };
 
   state = {
-    drawResult, race, prize, topK, durationSec, lanes,
-    looks, sprites, dogScale,
+    drawResult, race, prize, topK, durationSec, lanes, laneCount,
+    looks, sprites, dogScale, packSpread, fitZoom,
+    stage: variant.stage,
+    sky,
+    modes: variant.modes,
     colors: looks.map((l) => l.fur),
     paused: false,
     finishT: race.finishSample * race.dtNorm * durationSec,
+    freezeDur: FEEL.FREEZE * variant.stage.freezeMult,
     t: 0, phase: "countdown", sinceImpact: 0, beeped: -1,
+    lastDustAt: -1,
     countdownFrom: performance.now(), last: performance.now(),
   };
+  paintVariantBanner(variant);
 
   fx.flash = fx.shake = fx.punch = 0;
   railKey = "";
   document.getElementById("setup").style.display = "none";
   document.getElementById("podium").classList.remove("on");
   document.getElementById("paused").classList.remove("on");
+  paintConfetti(false);
   paintControls();
   document.getElementById("meta").innerHTML =
     `<b>${n}</b> chó · top <b>${topK}</b> · seed <b>${drawResult.seedHex.slice(0, 12)}…</b>`;
@@ -457,6 +655,12 @@ function frame(now) {
   decayFx(dtReal);
   music.tick(dtReal);
 
+  // Bụi chạy trên thời gian ĐÃ LÀM CHẬM, khác hẳn chớp/rung/giật máy quay ở
+  // trên. Cố ý: bụi là vật thể trong cảnh nên nó phải đứng yên khi cuộc đua
+  // đứng yên, còn chớp và rung thuộc về ống kính nên chúng phải chạy tiếp.
+  // Đây đúng là ranh giới mà cú đóng băng ở khung va chạm sống nhờ vào.
+  if (dust) dust.update(dtReal * timeScale(s));
+
   if (s.phase === "countdown") {
     const elapsed = (now - s.countdownFrom) / 1000;
     const left = Math.ceil(3 - elapsed);
@@ -476,6 +680,7 @@ function frame(now) {
 
   } else if (s.phase === "run") {
     s.t += dtReal * timeScale(s);
+    spawnDust();
     if (s.t >= s.finishT) {
       // ▣ KHUNG VA CHẠM. Mọi kênh nổ trên cùng một tick.
       s.t = s.finishT;
@@ -487,16 +692,96 @@ function frame(now) {
 
   } else if (s.phase === "impact") {
     s.sinceImpact += dtReal;
-    if (s.sinceImpact >= FEEL.FREEZE) s.phase = "reaction";
+    if (s.sinceImpact >= s.freezeDur) s.phase = "reaction";
 
   } else if (s.phase === "reaction") {
     s.sinceImpact += dtReal;
     s.t += dtReal * timeScale(s);
-    if (s.sinceImpact >= finishBeatDuration()) { s.phase = "done"; showPodium(); }
+    if (s.sinceImpact >= s.freezeDur + FEEL.REACTION + FEEL.HOLD) { s.phase = "done"; showPodium(); }
   }
 
   render(now / 1000);
+  if (s.phase === "run") { checkBites(); checkBeats(); }
   requestAnimationFrame(frame);
+}
+
+/**
+ * Bắn phản hồi cho một cú cắn.
+ *
+ * Lịch cắn đã tính sẵn từ đường chạy, nên ở đây chỉ còn việc bắt lúc đồng hồ
+ * cuộc đua đi qua từng mốc. Duyệt bằng một con trỏ tiến dần chứ không quét lại
+ * cả danh sách mỗi khung hình.
+ *
+ * Bậc để ở mức VỪA: có tiếng, có chớp máy quay, có rung tay, có bụi — nhưng
+ * KHÔNG rung màn hình. Rung màn hình dành riêng cho khung va chạm ở vạch đích.
+ * Nếu một cú cắn ở giây thứ mười cũng rung màn hình thì tới lúc về đích chẳng
+ * còn bậc nào để leo lên nữa.
+ */
+function checkBites() {
+  const s = state;
+  if (!bites || !bites.enabled) return;
+  const ev = bites.events;
+  while (nextBite < ev.length && s.t >= ev[nextBite].tSec) {
+    const e = ev[nextBite++];
+    const fs = frameState;
+
+    // Tiếng đớp: một cú va trầm cộng một dải nhiễu ngắn cắt cao tần. Không
+    // dùng tiếng "chó sủa" — trong một phòng họp thì tiếng sủa đọc ra thành
+    // trò đùa, còn tiếng va thì đọc ra thành một cú va.
+    audio.tone({ freq: audio.vary(150), sweepTo: 74, dur: 0.16, type: "square", gain: 0.11 });
+    audio.noise({ dur: 0.16, gain: 0.13, cutoff: 1500 });
+    audio.tone({ freq: audio.vary(320), sweepTo: 180, dur: 0.3, type: "sawtooth",
+                 gain: 0.05, at: 0.04 });
+    buzz([22, 30, 14]);
+    fx.punch = Math.max(fx.punch, 0.5);
+
+    if (dust) {
+      const a = fs.pa[e.victim];
+      dust.spawn(fs.px[e.victim], fs.py[e.victim] + 4, 20, Math.cos(a), Math.sin(a), 1.8);
+    }
+  }
+}
+
+/**
+ * Bắn phản hồi cho các nhịp kịch tính của phần THÂN cuộc đua.
+ *
+ * Lỗ hổng mà việc này vá: lớp đạo diễn dựng sẵn trung bình 4,5 lần đổi ngôi đầu
+ * mỗi cuộc đua, một kẻ dẫn đầu giả sụp ở nhịp 4, những cú vượt qua ranh giới
+ * trúng thưởng — và KHÔNG một nhịp nào trong số đó phát ra tiếng động hay chớp
+ * sáng. Chúng chỉ xảy ra, ở đâu đó giữa 150 chấm màu đang chạy, và ai không
+ * nhìn đúng chỗ thì không biết vừa có chuyện gì.
+ *
+ * Điều khoản gốc của lớp cảm giác: hành động đáng kể phải phản hồi trên CẢ BA
+ * kênh — nhìn, nghe, rung. Ở đây là chớp máy quay nhẹ, một quãng hai nốt đi
+ * lên, và một cú rung tay ngắn. Bậc để ở mức VỪA, không phải mức nặng: khung
+ * va chạm ở vạch đích mới được dùng bậc nặng, và nếu giữa chừng cũng rung màn
+ * hình thì lúc về đích chẳng còn gì để leo lên nữa.
+ *
+ * Việc khó — phân biệt cú vượt thật với hai con đang chạy ngang nhau đảo chỗ
+ * sáu mươi lần một giây — nằm ở tools/race/juice.mjs và có cửa kiểm thử riêng.
+ */
+function checkBeats() {
+  const s = state;
+  const fs = frameState;
+  const e = beats.feed(fs.order, fs.pos, s.t, s.t / s.durationSec);
+  if (!e) return;
+
+  const pitch = streakPitch(e.streak);
+  const lead = e.kind === "dan_dau";
+
+  fx.punch = Math.max(fx.punch, lead ? 0.42 : 0.26);
+  audio.tone({ freq: audio.vary(392 * pitch), dur: 0.09, type: "triangle", gain: lead ? 0.085 : 0.055 });
+  audio.tone({ freq: audio.vary(587 * pitch), dur: 0.13, type: "triangle",
+               gain: lead ? 0.075 : 0.05, at: 0.075 });
+  buzz(lead ? [16, 26, 16] : [12]);
+
+  // Bụi tung lên dưới chân con vừa vượt: cú vượt có một CHỖ trên màn hình, và
+  // hạt bụi là thứ chỉ vào đúng chỗ đó. Tiếng động một mình chỉ nói rằng có
+  // chuyện xảy ra, không nói chuyện xảy ra ở đâu.
+  if (dust) {
+    dust.spawn(fs.px[e.dog], fs.py[e.dog] + 4, lead ? 14 : 9,
+               Math.cos(fs.pa[e.dog]), Math.sin(fs.pa[e.dog]), 1.5);
+  }
 }
 
 // =========================================================================
@@ -507,54 +792,151 @@ function render(nowSec) {
   const race = s.race;
   const tn = Math.min(s.t / s.durationSec, 1 + 0.34);
 
-  // Vị trí LIÊN TỤC, nội suy giữa hai mẫu.
+  // --- Máy quay: bám nhóm dẫn đầu, siết lại khi tới gần vạch đích, và THỞ.
   //
-  // Bản trước làm tròn về mẫu gần nhất. Ở 30 Hz thì tốc độ thường đã có khung
-  // trùng, còn khi chậm còn 0.3× thì mỗi mẫu bị giữ tới 6–7 khung — đàn chó
-  // nhảy giữa các ô thay vì trượt. Đó mới là thứ trông giống giật lag, và nó
-  // là lỗi lấy mẫu chứ không phải lỗi hiệu ứng.
-  const x = tn / race.dtNorm;
-  const a = Math.max(0, Math.min(race.sampleCount - 1, Math.floor(x)));
-  const b = Math.min(race.sampleCount - 1, a + 1);
-  const f = x - a;
-  for (let dog = 0; dog < race.n; dog++) {
-    const row = dog * race.sampleCount;
-    posBuf[dog] = race.progress[row + a] * (1 - f) + race.progress[row + b] * f;
-    idxBuf[dog] = dog;
-  }
-  const order = idxBuf;
-  order.sort((p, q) => posBuf[q] - posBuf[p] || p - q);
-
-  // --- camera bám nhóm dẫn đầu, siết lại khi tới gần vạch đích
-  const lead = posBuf[order[0]];
-  const back = posBuf[order[Math.min(7, race.n - 1)]];
-  const cam = pointAt(lead - (lead - back) * 0.45, 0);
+  // Máy quay đứng chết cứng đọc ra như ảnh chụp màn hình, kể cả khi mọi thứ
+  // trong khung đang chạy. Biên độ thở nhỏ tới mức không ai chỉ ra được —
+  // 2,4% mức phóng trong chu kỳ 7,5 giây — chỉ đủ để khung hình không bao giờ
+  // thật sự đứng yên.
   const closing = Math.max(0, Math.min(1, (s.finishT - s.t) / FEEL.ANTICIPATION));
-  const zoom = (1.45 + 0.28 * (1 - closing) * MOTION) * (1 + 0.10 * fx.punch * fx.punch * MOTION);
-  const sh = shakeOffset(nowSec);
+  const zoom = s.fitZoom() * (1 + 0.19 * (1 - closing) * MOTION)
+             * (1 + 0.10 * fx.punch * fx.punch * MOTION)
+             * breatheAt(nowSec, MOTION);
 
+  // Vùng nhìn thấy phải tính TRƯỚC khi chiếu toạ độ, vì nó quyết định con nào
+  // được vẽ. Phụ thuộc mức phóng nên phải tính lại mỗi khung — nhưng đây là ba
+  // phép chia, còn thứ nó cắt đi là hàng nghìn lệnh vẽ mỗi giây.
+  const view = viewHalfExtent(cssW, cssH, zoom, s.dogScale);
+  const fs = stepFrame(frameState, race, tn, s.lanes, view, bites);
+  const order = fs.order;
+
+  const sh = shakeOffset(nowSec);
   const W = cv.width, H = cv.height;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = "#0e120f";
-  ctx.fillRect(0, 0, W, H);
-  const k = dpr * zoom;
-  ctx.setTransform(k, 0, 0, k, W / 2 - cam.x * k + sh.x * dpr, H / 2 - cam.y * k + sh.y * dpr);
 
-  drawTrack();
-  for (let p = race.n - 1; p >= 0; p--) {
-    const dog = order[p];
-    const pt = pointAt(Math.min(posBuf[dog], 1.03), s.lanes[dog]);
-    pxBuf[dog] = pt.x;
-    pyBuf[dog] = pt.y;
-    drawDogSprite(pt, s.sprites[dog], s.dogScale,
-                  dog < s.topK && s.phase !== "run" && s.phase !== "countdown");
+  // --- Nền ngoài sân, trong TOẠ ĐỘ MÀN HÌNH: sắc trời hắt xuống phần mà cỏ
+  //     không phủ tới. Nhìn từ trên xuống thì không có đường chân trời, nên đây
+  //     là chỗ duy nhất mà "trời" có thể xuất hiện mà không đọc ra lạc chỗ —
+  //     xem chú thích dài ở đầu tools/race/sky.mjs.
+  const sky = s.sky;
+  if (backdropStale(backdrop, sky, H)) backdrop = makeBackdrop(ctx, sky, H);
+  ctx.fillStyle = backdrop.grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const k = dpr * zoom;
+  ctx.setTransform(k, 0, 0, k, W / 2 - fs.camX * k + sh.x * dpr, H / 2 - fs.camY * k + sh.y * dpr);
+
+  drawTiledTrack(ctx, trackTile, fs.camX, view.halfW);
+  drawMarkers(ctx, s.laneCount, fs.camX, view.halfW, sky.id);
+  // Bóng mây nằm TRÊN mặt cỏ nhưng DƯỚI đàn chó: vẽ sau cái sân, trước hạt bụi.
+  // Trong toạ độ sân, không phải toạ độ màn hình — nó phải trượt đi khi máy quay
+  // chạy dọc đường đua, ngược hẳn với lớp thời tiết ở cuối hàm.
+  drawCloudShadows(ctx, softBlob, sky, nowSec, fs.camX, view.halfW, s.laneCount, cloudScratch);
+  drawDust();
+
+  // --- Vệt nắng, trong TOẠ ĐỘ MÀN HÌNH nhưng vẽ TRƯỚC đàn chó.
+  //
+  // Toạ độ màn hình vì mặt trời ở xa vô hạn: nó không được trượt theo đường đua.
+  // Trước đàn chó vì nó là ánh nắng RỌI XUỐNG SÂN, không phải một tấm kính màu
+  // đặt trước ống kính — tô nó lên trên đàn chó thì nó cộng sáng vào cả biển tên,
+  // và chữ trắng trên nền biển sáng lên là chữ khó đọc đi.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawSunWash(ctx, sunBlob, sky, W, H);
+  ctx.setTransform(k, 0, 0, k, W / 2 - fs.camX * k + sh.x * dpr, H / 2 - fs.camY * k + sh.y * dpr);
+
+  // Chỉ duyệt danh sách đã cắt bớt. Ở pha về đích trên màn hình laptop, danh
+  // sách này ngắn hơn cả đàn khoảng một phần tư — xem tools/race/perf-selftest.mjs.
+  const showWinner = s.phase !== "run" && s.phase !== "countdown";
+  if (s.stage.streaks && tn > 0.72) drawStreaks(fs, tn);
+  for (let i = 0; i < fs.visCount; i++) {
+    const dog = fs.vis[i];
+    drawDogSprite(dog, fs, s.sprites[dog], s.dogScale, showWinner && dog < s.topK);
   }
 
   drawNameLabels(order);
 
+  // --- Thời tiết, trong TOẠ ĐỘ MÀN HÌNH và trên cùng mọi thứ: hạt mưa rơi
+  //     TRƯỚC MẶT đàn chó, không phải sau lưng. Toạ độ màn hình vì nó thuộc về
+  //     ống kính chứ không thuộc về cái sân — vẽ trong toạ độ sân thì nó to ra
+  //     khi máy quay siết vào và trượt đi khi máy quay chạy dọc đường đua, tức
+  //     là đọc ra thành một tấm hoa văn dán lên mặt đất. Đúng lỗi mà bản mưa đầu
+  //     tiên mắc phải.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawWeather(ctx, s.stage.weather, nowSec, W, H, dpr, MOTION);
+
   flashEl.style.opacity = String(easeOutCubic(fx.flash) * 0.5);
   clockEl.textContent = s.t.toFixed(1) + "s";
   renderRail(order);
+}
+
+/**
+ * Bụi bốc lên sau chân nhóm dẫn đầu.
+ *
+ * Chỉ nhóm dẫn đầu, và chỉ khi đang chạy. Bụi ở cả 150 con là một màn sương
+ * mù che mất chính thứ nó lẽ ra phải làm nổi bật, và nó tốn 150 lần chi phí để
+ * đạt được điều đó.
+ */
+function spawnDust() {
+  const s = state;
+  if (!dust || s.phase !== "run" || s.stage.dustMult <= 0) return;
+  if (s.t - s.lastDustAt < 0.05) return;
+  s.lastDustAt = s.t;
+
+  const fs = frameState;
+  const many = Math.min(6, fs.n);
+  for (let p = 0; p < many; p++) {
+    const dog = fs.order[p];
+    const a = fs.pa[dog];
+    dust.spawn(fs.px[dog], fs.py[dog] + 4, s.stage.dustMult >= 1.3 ? 2 : 1,
+               Math.cos(a), Math.sin(a), 0.55 + 0.45 * s.stage.dustMult);
+  }
+}
+
+/**
+ * Vệt tốc độ sau lưng nhóm dẫn đầu trong đoạn nước rút.
+ *
+ * Vẽ chính sprite thân, lùi lại một đoạn theo hướng chạy, mờ dần. Ở 60 khung
+ * hình mỗi giây thì tốc độ không tự đọc ra được — mọi thứ đều mượt như nhau,
+ * kể cả lúc chậm. Vệt kéo lại là cách rẻ nhất để "đang phi hết sức" khác được
+ * với "đang chạy đều".
+ *
+ * Chỉ ba con đầu, chỉ từ mốc 72%: sáu lệnh vẽ thêm, và chỉ ở đúng đoạn mà tốc
+ * độ là thứ đáng nói tới.
+ */
+function drawStreaks(fs, tn) {
+  const s = state;
+  const many = Math.min(3, fs.n);
+  const push = 0.10 + 0.16 * Math.min(1, (tn - 0.72) / 0.25);
+  for (let p = 0; p < many; p++) {
+    const dog = fs.order[p];
+    const sp = s.sprites[dog];
+    const bw = sp.bodyW * s.dogScale;
+    const bh = sp.bodyH * s.dogScale;
+    const ca = Math.cos(fs.pa[dog]);
+    const sa = Math.sin(fs.pa[dog]);
+    for (let g = 1; g <= 2; g++) {
+      ctx.globalAlpha = (0.26 / g) * MOTION;
+      ctx.save();
+      ctx.translate(fs.px[dog] - ca * bw * push * g * 2.4, fs.py[dog] - sa * bw * push * g * 2.4);
+      ctx.rotate(fs.pa[dog]);
+      ctx.drawImage(sp.body, -bw / 2, -bh * 0.62, bw, bh);
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawDust() {
+  if (!dust) return;
+  const d = dust;
+  ctx.fillStyle = "rgba(190,178,150,.30)";
+  for (let i = 0; i < d.cap; i++) {
+    if (d.life[i] <= 0) continue;
+    const u = d.life[i] / d.born[i];
+    ctx.globalAlpha = u * 0.5;
+    ctx.fillRect(d.x[i], d.y[i], d.size[i], d.size[i]);
+  }
+  ctx.globalAlpha = 1;
 }
 
 /**
@@ -574,11 +956,12 @@ function drawNameLabels(order) {
   // rồi, nên đây là lớp ĐỌC RÕ HƠN cho nhóm đang được chú ý, không phải lớp
   // duy nhất có tên.
   cands.length = 0;
+  const fs = frameState;
   for (let p = 0; p < Math.min(8, race.n); p++) {
     const dog = order[p];
     const c = candPool[dog];
-    c.x = pxBuf[dog];
-    c.y = pyBuf[dog] - 44;
+    c.x = fs.px[dog];
+    c.y = fs.py[dog] - 44;
     c.w = nameW[dog];
     c.priority = 0;
     cands.push(c);
@@ -599,6 +982,41 @@ function drawNameLabels(order) {
   }
 }
 
+// =========================================================================
+//  Biến thể cuộc đua
+//
+//  Thư viện và toàn bộ phần bảo đảm "không đụng được vào kết quả" nằm ở
+//  tools/race/modes.mjs. Ở đây chỉ còn hai việc: đọc lựa chọn của quản trò, và
+//  cho cả phòng biết lượt này đang chạy biến thể nào.
+// =========================================================================
+
+/**
+ * Đọc lựa chọn biến thể.
+ *
+ * Mặc định là "tự bốc theo seed" chứ không phải "tắt". Một buổi trao thưởng
+ * quay 8–12 lượt, và tới lượt thứ tư thì cả phòng đã thuộc lòng nhịp kể chuyện
+ * — cú vượt ở giây cuối không còn ăn tiền nữa. Tự bốc thì mỗi lượt có một dáng
+ * riêng mà quản trò không phải nhớ bấm gì.
+ *
+ * Bốc theo SEED chứ không theo đồng hồ: lượt chạy thử ở nhà và lượt chạy thật
+ * trước cả phòng phải giống hệt nhau, kể cả phần kể chuyện. Nếu không thì buổi
+ * chạy thử chẳng chứng minh được gì.
+ */
+function readModeChoice(seedHex) {
+  const v = document.getElementById("mode").value;
+  if (v === "tat") return mergeModes([]);
+  if (v === "tu") return pickModes(seedHex, 1);
+  return mergeModes([v]);
+}
+
+function paintVariantBanner(variant) {
+  const el = document.getElementById("variant");
+  const label = modeLabel(variant);
+  el.textContent = label;
+  el.title = variant.modes.map((m) => m.blurb).join(" ");
+  el.classList.toggle("on", label !== "");
+}
+
 /** Về màn hình thiết lập giữa chừng. Mọi thiết lập vẫn nằm nguyên trong form. */
 /**
  * Báo cho quản trò biết thiết lập đã sang tới nơi.
@@ -615,11 +1033,41 @@ function announceHandoff() {
   setTimeout(() => el.classList.remove("on"), 3600);
 }
 
+/**
+ * Điền ô chọn biến thể từ chính thư viện.
+ *
+ * Điền từ MODES chứ không gõ tay từng dòng option: thêm một biến thể vào thư
+ * viện là nó có mặt ở đây, không có đường nào để hai bên lệch nhau.
+ */
+function fillModeSelect() {
+  const sel = document.getElementById("mode");
+  let html = '<option value="tu">Tự bốc theo seed (khuyên dùng)</option>' +
+             '<option value="tat">Tắt — nhịp gốc</option>';
+  for (const m of MODES) {
+    if (m.id === "chuan") continue;
+    html += `<option value="${m.id}">${m.icon} ${escapeHtml(m.name)}</option>`;
+  }
+  sel.innerHTML = html;
+
+  const hint = document.getElementById("modeHint");
+  const paint = () => {
+    const v = sel.value;
+    hint.textContent =
+      v === "tu" ? "Mỗi lượt một dáng riêng, bốc xác định theo seed — chạy thử ở nhà ra đúng lượt sẽ chạy thật."
+      : v === "tat" ? "Nhịp kể chuyện gốc, không đổi gì."
+      : (modeById(v) || { blurb: "" }).blurb;
+  };
+  sel.addEventListener("change", paint);
+  paint();
+}
+
 function backToSetup() {
   state = null;
+  document.getElementById("variant").classList.remove("on");
   music.stop();
   document.getElementById("paused").classList.remove("on");
   document.getElementById("podium").classList.remove("on");
+  paintConfetti(false);
   document.getElementById("setup").style.display = "";
 }
 
@@ -633,50 +1081,34 @@ function togglePause() {
   else music.resume();
 }
 
-function drawTrack() {
-  const outer = TRACK_R + LANE_W * (LANES + 1) / 2;
-  const inner = TRACK_R - LANE_W * (LANES + 1) / 2;
-
-  const band = (r, color, width) => {
-    ctx.beginPath();
-    ctx.moveTo(-TRACK_L / 2, r);
-    ctx.lineTo(TRACK_L / 2, r);
-    ctx.arc(TRACK_L / 2, 0, r, Math.PI / 2, -Math.PI / 2, true);
-    ctx.lineTo(-TRACK_L / 2, -r);
-    ctx.arc(-TRACK_L / 2, 0, r, -Math.PI / 2, Math.PI / 2, true);
-    ctx.closePath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.stroke();
-  };
-
-  ctx.save();
-  band((outer + inner) / 2, "#243329", outer - inner);
-  for (let i = 1; i < LANES + 1; i++) band(inner + i * LANE_W, "rgba(255,255,255,.05)", 1.5);
-
-  ctx.save();
-  ctx.translate(-TRACK_L / 2, 0);
-  for (let i = 0; i < LANES + 1; i++) {
-    ctx.fillStyle = i % 2 ? "#f2f4ee" : "#20261f";
-    ctx.fillRect(-7, inner + i * LANE_W, 14, LANE_W);
-  }
-  ctx.restore();
-  ctx.restore();
-}
-
 /**
  * Vẽ một chú chó từ sprite đã nướng.
  *
- * Thân xoay theo hướng chạy, biển tên đứng thẳng — ở khúc cua mà biển tên cũng
- * nghiêng theo thì không ai đọc nổi. Đó là lý do sprite được tách làm hai.
+ * Thân xoay theo hướng chạy, biển tên đứng thẳng. Trên sân thẳng thì hướng chạy
+ * luôn bằng 0 nên hai thứ trùng nhau — nhưng khi con chó BỊ CẮN NGÃ thì thân
+ * nghiêng gần tám mươi độ còn biển tên vẫn phải đọc được. Đó là lý do sprite
+ * được tách làm hai, và giờ nó có thêm một lý do nữa để tách.
+ *
+ * Nhịp sải chân — nhấp nhô cộng nén giãn — suy ra từ QUÃNG ĐƯỜNG chứ không từ
+ * đồng hồ. Nhờ vậy chân tự khớp với tốc độ, và trong lúc đóng băng ở khung va
+ * chạm thì chân cũng đứng yên. Nếu suy từ đồng hồ thì đàn chó vẫn nhún nhảy
+ * trong khi cả màn hình đã đứng hình, và cú đóng băng mất sạch sức nặng.
  */
-function drawDogSprite(pt, sp, scale, isWinner) {
-  const bw = sp.bodyW * scale;
-  const bh = sp.bodyH * scale;
+function drawDogSprite(dog, fs, sp, scale, isWinner) {
+  // Con đang bị cắn thì KHÔNG chạy: nó nằm nghiêng và đứng im. Nhịp sải chân
+  // tắt hẳn ở đây — một con vừa nằm quay đơ vừa nhún chân là hai thông điệp
+  // đánh nhau, và người xem tin cái nào cũng đều sai.
+  const since = bites ? bites.sinceOf(dog, state.t) : -1;
+  const stunned = since >= 0;
+  const g = stunned ? FLAT : gallopAt(phases[dog], fs.pos[dog], MOTION);
+  const bw = sp.bodyW * scale * g.sx;
+  const bh = sp.bodyH * scale * g.sy;
+  const x = fs.px[dog];
+  const y = fs.py[dog] + g.bob;
 
   ctx.save();
-  ctx.translate(pt.x, pt.y);
-  ctx.rotate(pt.a);
+  ctx.translate(x, y);
+  ctx.rotate(fs.pa[dog] + (stunned ? tiltAt(since) : 0));
   if (isWinner) {
     ctx.strokeStyle = "#f0be51";
     ctx.lineWidth = 3;
@@ -689,8 +1121,28 @@ function drawDogSprite(pt, sp, scale, isWinner) {
 
   const pw = sp.plateW * scale * 0.92;
   const ph = sp.plateH * scale * 0.92;
-  ctx.drawImage(sp.plate, pt.x - pw / 2, pt.y + bh * 0.30, pw, ph);
+  ctx.drawImage(sp.plate, x - pw / 2, fs.py[dog] + sp.bodyH * scale * 0.30, pw, ph);
+
+  // Ba ngôi sao quay tròn trên đầu con đang đơ.
+  //
+  // Cần thứ này vì góc nghiêng một mình không đủ: ở đàn 150, một model cao bốn
+  // mươi đơn vị nằm nghiêng giữa đám đang chạy trông chỉ như một con hơi lệch.
+  // Vòng sao quay là dấu hiệu duy nhất đọc được từ khoảng cách của máy chiếu.
+  if (stunned && stunPhase(since) === "do") {
+    const r = sp.bodyH * scale * 0.52;
+    ctx.fillStyle = "#f0be51";
+    for (let k = 0; k < 3; k++) {
+      const a = state.t * 5.2 + (k * Math.PI * 2) / 3;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * r, fs.py[dog] - bh * 0.62 + Math.sin(a) * r * 0.42,
+              Math.max(1.6, r * 0.15), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 }
+
+/** Không nhún, không nén giãn. Dùng cho con đang nằm. */
+const FLAT = { bob: 0, sx: 1, sy: 1 };
 
 function renderRail(order) {
   const s = state;
@@ -718,26 +1170,102 @@ function renderRail(order) {
 
 const escapeHtml = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/**
+ * Bục vinh danh: ba bậc huy chương vàng — bạc — đồng, công bố NGƯỢC.
+ *
+ * Hạng ba lên trước, rồi hạng nhì, rồi hạng nhất. Công bố xuôi thì tên người
+ * thắng ra ngay ở nhịp đầu, và hai nhịp còn lại không còn ai quan tâm nữa —
+ * cả màn công bố chỉ còn một khoảnh khắc thay vì ba.
+ *
+ * Ba bậc xếp theo thứ tự NHÌN THẤY là 2 – 1 – 3, đúng cách một cái bục thật
+ * xếp: bậc cao nhất ở giữa. Thứ tự trong DOM cũng là 2 – 1 – 3, không dùng
+ * thuộc tính order của flexbox — nếu dùng thì bộ đọc màn hình và thao tác chọn
+ * chữ đọc ra một thứ tự khác với mắt nhìn.
+ *
+ * Hạng 4 trở đi rơi xuống danh sách thường bên dưới. Huy chương chỉ có ba cái,
+ * và một "huy chương hạng tư" thì không phải huy chương.
+ */
+const GAP = 0.62;
+
 function showPodium() {
   const s = state;
+  const n = s.race.n;
+  const top = Math.min(3, s.topK, n);
+
+  // Nhịp công bố của từng hạng, tính từ lúc bục hiện ra. Hạng thấp trước.
+  const beatOf = (rank) => (top - 1 - rank) * GAP + 0.18;
+
   document.getElementById("podPrize").textContent = s.drawResult.prizeLabel || "(không đặt tên giải)";
-  let html = "";
-  for (let p = 0; p < s.topK && p < s.race.n; p++) {
-    // Công bố lần lượt, không đổ ra cùng lúc — mỗi cái một nhịp.
-    html += `<div class="w" style="animation-delay:${(s.topK - 1 - p) * 0.24}s">` +
+
+  const ORDER = [[0], [1, 0], [1, 0, 2]][top - 1] || [];
+  let tiers = "";
+  for (const rank of ORDER) {
+    tiers += `<div class="tier t${rank + 1}" style="--d:${beatOf(rank).toFixed(2)}s">` +
+             `<span class="medal m${rank + 1}">${rank + 1}</span>` +
+             `<span class="sw" style="background:${s.colors[rank]}"></span>` +
+             `<span class="nm" title="${escapeHtml(s.race.finalOrder[rank])}">` +
+             `${escapeHtml(s.race.finalOrder[rank])}</span>` +
+             `<span class="block">${rank + 1}</span></div>`;
+  }
+  document.getElementById("podTop").innerHTML = tiers;
+
+  // Hạng 4 trở đi, đổ ra sau khi ba bậc đã xong.
+  let rest = "";
+  for (let p = top; p < s.topK && p < n; p++) {
+    rest += `<div class="w" style="--d:${(top * GAP + 0.18 + (p - top) * 0.16).toFixed(2)}s">` +
             `<span class="rank">#${p + 1}</span>` +
             `<span class="sw" style="width:14px;height:14px;border-radius:4px;background:${s.colors[p]}"></span>` +
             `<span class="nm">${escapeHtml(s.race.finalOrder[p])}</span></div>`;
   }
-  document.getElementById("podList").innerHTML = html;
-  document.getElementById("podSeed").textContent = "seed " + s.drawResult.seedHex;
-  document.getElementById("podium").classList.add("on");
-  music.duck(0.9 + s.topK * 0.24);
+  document.getElementById("podList").innerHTML = rest;
 
-  const chord = [523.25, 659.25, 783.99];
-  for (let i = 0; i < Math.min(s.topK, 3); i++) {
-    audio.tone({ freq: chord[i], dur: 0.7, type: "triangle", gain: 0.11, at: (s.topK - 1 - i) * 0.24 });
+  document.getElementById("podSeed").textContent = "seed " + s.drawResult.seedHex;
+  paintConfetti(s.stage.confetti && !REDUCED);
+  document.getElementById("podium").classList.add("on");
+  music.duck(beatOf(0) + 1.2);
+
+  // Một nốt cho mỗi bậc, đi LÊN theo hạng: đồng — bạc — vàng dựng thành một hợp
+  // âm rải đi lên, và nốt cao nhất rơi đúng lúc tên người thắng hiện ra. Tiếng
+  // phải nổ cùng tick với hình, nếu không thì nó thành tiếng vọng của một thứ đã
+  // xảy ra rồi.
+  const chord = [523.25, 659.25, 783.99, 1046.5];
+  for (let rank = 0; rank < top; rank++) {
+    const at = beatOf(rank);
+    audio.tone({ freq: chord[top - 1 - rank], dur: 0.7, type: "triangle", gain: 0.1, at });
+    if (rank === 0) {
+      // Bậc cuối được thêm một tầng: đây là khoảnh khắc mà cả buổi lễ đi tới.
+      audio.tone({ freq: chord[3], dur: 0.9, type: "triangle", gain: 0.07, at: at + 0.06 });
+      audio.noise({ dur: 0.5, gain: 0.07, cutoff: 4200, at });
+      buzz([24, 40, 60]);
+    }
   }
+}
+
+/**
+ * Giấy màu rơi sau bục vinh danh.
+ *
+ * Bằng DOM chứ không bằng canvas: bục là một lớp DOM nằm đè lên canvas, nên vẽ
+ * giấy màu trên canvas thì nó nằm SAU cái bục. Ba mươi thẻ span với một animation
+ * thuần transform là thứ trình duyệt chạy trên luồng hợp thành, không đụng tới
+ * luồng chính đang bận với ba bậc kia.
+ *
+ * Màu lấy từ chính bảng màu của trang, không phải bảy sắc cầu vồng: giấy màu lạc
+ * bảng màu đọc ra thành một hiệu ứng dán vào, không thành một phần của trang.
+ */
+const CONFETTI_TINT = ["#f2c14e", "#48c390", "#e37a63", "#8fb8e8", "#d2d9e0"];
+
+function paintConfetti(on) {
+  const el = document.getElementById("confetti");
+  if (!on) { el.innerHTML = ""; return; }
+  let html = "";
+  for (let i = 0; i < 30; i++) {
+    // Rải theo chỉ số chứ không theo Math.random: cùng một lượt quay phải cho ra
+    // cùng một cảnh, kể cả phần trang trí — cùng lý lẽ với lớp mưa và bóng mây.
+    const x = ((i * 37) % 100) + (i % 3);
+    html += `<i style="left:${x}%;background:${CONFETTI_TINT[i % CONFETTI_TINT.length]};` +
+            `--dur:${(2.4 + (i % 7) * 0.42).toFixed(2)}s;--d:${((i % 11) * 0.23).toFixed(2)}s"></i>`;
+  }
+  el.innerHTML = html;
 }
 
 // =========================================================================
@@ -857,6 +1385,7 @@ document.addEventListener("keydown", (e) => {
     document.getElementById("go").focus();
     announceHandoff();
   }
+  fillModeSelect();
   paintControls();
 
   resize();

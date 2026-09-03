@@ -124,11 +124,15 @@ check("Không phụ thuộc tài nguyên ngoài", external === null,
   // Cắt bằng mốc TƯỜNG MINH đặt sẵn trong trang. Trước đây mốc kết thúc là một
   // khai báo tình cờ nằm gần đó, và nó gãy hai lần: một lần vì dog.mjs cũng khai
   // báo FUR, một lần vì dòng ngay sau đó gọi hàm của module khác.
-  const geo = script.slice(script.indexOf("const TRACK_R"), script.indexOf("/* GEO-END"));
+  const geo = script.slice(script.indexOf("/* GEO-START"), script.indexOf("/* GEO-END"));
   check("Tìm thấy mốc hình học trong trang", geo.length > 100);
-  const ctxGeo = { Math };
+  const ctxGeo = { Math, Int32Array, Float64Array };
   vm.createContext(ctxGeo);
-  new vm.Script(geo + "\n;globalThis.__pointAt = pointAt; globalThis.__PERIM = PERIM;").runInContext(ctxGeo);
+  new vm.Script(geo + `
+;globalThis.__pointAt = pointAt;
+globalThis.__LEN = TRACK_LEN;
+globalThis.__lanesFor = lanesFor;
+globalThis.__assignLanes = assignLanes;`).runInContext(ctxGeo);
   const at = ctxGeo.__pointAt;
 
   let worst = 0;
@@ -138,13 +142,47 @@ check("Không phụ thuộc tài nguyên ngoài", external === null,
     const b = at(p + STEP, 0);
     worst = Math.max(worst, Math.hypot(b.x - a.x, b.y - a.y));
   }
-  const expected = ctxGeo.__PERIM * STEP;
+  const expected = ctxGeo.__LEN * STEP;
   check("Đường đua liền mạch, không có chỗ nhảy", worst < expected * 1.6,
     `bước lớn nhất ${worst.toFixed(3)} so với chuẩn ${expected.toFixed(3)}`);
 
+  // Sân THẲNG: hai vạch ở hai đầu, cách nhau đúng chiều dài đường đua.
+  //
+  // Ràng buộc cũ — "vạch xuất phát trùng vạch đích" — là ràng buộc của sân
+  // oval và đã hết hiệu lực. Xoá hẳn chứ không nới lỏng: một phép kiểm được
+  // nới cho vừa với mã mới thì từ đó không kiểm gì nữa, mà vẫn báo màu xanh.
   const start = at(0, 0);
   const end = at(1, 0);
-  check("Vạch xuất phát trùng vạch đích", Math.hypot(end.x - start.x, end.y - start.y) < 0.001);
+  check("Vạch đích cách vạch xuất phát đúng chiều dài đường đua",
+    Math.abs(end.x - start.x - ctxGeo.__LEN) < 1e-9 && Math.abs(end.y - start.y) < 1e-9,
+    `${ctxGeo.__LEN} đơn vị sân`);
+  check("Đường chạy thẳng, không lệch theo chiều dọc",
+    at(0.37, 0).y === 0 && at(0.81, 0).y === 0);
+
+  // Chia làn phải ĐỀU. Đây là lý do duy nhất khiến việc bỏ sân oval đáng làm,
+  // nên nó được kiểm chứ không được tin.
+  let worstImbalance = 0;
+  for (const n of [8, 45, 150]) {
+    const lanes = ctxGeo.__lanesFor(n);
+    const assigned = ctxGeo.__assignLanes(n, "seed-kiem-tra-" + n, lanes);
+    const tally = new Map();
+    for (const v of assigned) tally.set(v, (tally.get(v) || 0) + 1);
+    const counts = [...tally.values()];
+    worstImbalance = Math.max(worstImbalance, Math.max(...counts) - Math.min(...counts));
+    if (tally.size !== Math.min(lanes, n)) worstImbalance = 99;
+  }
+  check("Chia làn đều, lệch nhau nhiều nhất một con", worstImbalance <= 1,
+    `8 người → ${ctxGeo.__lanesFor(8)} làn, 45 → ${ctxGeo.__lanesFor(45)}, ` +
+    `150 → ${ctxGeo.__lanesFor(150)} làn`);
+
+  // Người thắng luôn là chó số 0. Nếu làn suy ra từ chỉ số thì người thắng
+  // luôn nằm ở làn đầu tiên, và sau dăm buổi lễ sẽ có người nhận ra.
+  const winnerLanes = new Set();
+  for (let i = 0; i < 40; i++) {
+    winnerLanes.add(ctxGeo.__assignLanes(45, "giai-" + i, ctxGeo.__lanesFor(45))[0]);
+  }
+  check("Làn của người thắng không dính dáng gì tới việc họ thắng",
+    winnerLanes.size >= 8, `${winnerLanes.size} làn khác nhau qua 40 lượt`);
 }
 
 console.log(failed === 0 ? "\nTRANG ĐUA ĐẠT\n" : `\n${failed} MỤC KHÔNG ĐẠT\n`);
