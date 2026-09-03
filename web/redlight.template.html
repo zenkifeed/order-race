@@ -349,7 +349,11 @@ function startGame() {
   const nameW = new Float64Array(n);
   for (let i = 0; i < n; i++) nameW[i] = ctx.measureText(drawResult.finalOrder[i]).width + 14;
   const looks = assignLooks(drawResult.finalOrder);
-  const sprites = bakeAll(drawResult.finalOrder, looks, 2);
+  const sprites = bakeAll(drawResult.finalOrder, looks, 2, MOTION);
+
+  // Lệch pha sải chân, để cả đàn không đạp chân như một khối duy nhất.
+  const gaitPhase = new Float64Array(n);
+  for (let i = 0; i < n; i++) gaitPhase[i] = gallopPhase(i);
 
   const pxBuf = new Float64Array(n);
   const pyBuf = new Float64Array(n);
@@ -361,6 +365,7 @@ function startGame() {
 
   state = {
     drawResult, game, topK, lane, popAt, guards, shooter, popProg, nameW, pxBuf, pyBuf, candPool, cands,
+    gaitPhase,
     paused: false,
     looks, sprites,
     colors: looks.map((l) => l.fur),
@@ -731,20 +736,30 @@ function render(nowSec) {
     const popped = s.gameT - popT;
     if (popped > POP_SEC) continue;
 
-    const px = x0 + (x1 - x0) * g.progressOf(dog, s.gameT);
+    const prog = g.progressOf(dog, s.gameT);
+    const px = x0 + (x1 - x0) * prog;
     const py = yTop + (yBot - yTop) * s.lane[dog];
     s.pxBuf[dog] = px;
     s.pyBuf[dog] = py;
     const wobble = bob * Math.sin(nowSec * 9 + dog * 1.7) * 2.2 * MOTION;
     const shiver = s.flinch * Math.sin(nowSec * 44 + dog) * 1.6 * MOTION;
 
+    // Chân lấy tư thế theo QUÃNG ĐƯỜNG, y như bên sân đua — và ở trò này thì đó
+    // không chỉ là một chi tiết hay, nó là chính luật chơi: đèn đỏ thì quãng
+    // đường đứng lại, nên bốn cái chân cũng đứng lại theo, không cần một dòng
+    // nào nói riêng cho nó. Lấy theo đồng hồ thì cả đàn vẫn đạp chân rào rào
+    // trong lúc đáng ra phải bất động, và trò chơi tự mâu thuẫn với chính mình.
+    const frame = gallopFrame(s.gaitPhase[dog], prog, GALLOP_FRAMES);
+
     if (popped >= 0) {
       const u = popped / POP_SEC;
       ctx.globalAlpha = 1 - u * u;
-      drawDogSprite(px, py - u * 130 * MOTION, s.sprites[dog], dogScale * (1 + u * 0.5), -u * 2.4);
+      // Bị bắn bay lên thì bốn chân xoạc thẳng ra, không đạp nữa.
+      drawDogSprite(px, py - u * 130 * MOTION, s.sprites[dog], dogScale * (1 + u * 0.5),
+                    -u * 2.4, NEUTRAL_FRAME);
       ctx.globalAlpha = 1;
     } else {
-      drawDogSprite(px + shiver, py + wobble, s.sprites[dog], dogScale, 0);
+      drawDogSprite(px + shiver, py + wobble, s.sprites[dog], dogScale, 0, frame);
     }
   }
 
@@ -905,16 +920,21 @@ function drawField(x0, x1, yTop, yBot) {
 }
 
 /**
- * Vẽ một chú chó từ sprite đã nướng.
- * Biển tên đứng thẳng kể cả khi thân đang xoay lúc bị bắn bay lên.
+ * Vẽ một chú chó từ sprite đã nướng: chân, rồi thân, rồi biển tên.
+ *
+ * Biển tên đứng thẳng kể cả khi thân đang xoay lúc bị bắn bay lên. Chân vẽ
+ * trước thân để hai cái chân xa khuất sau bụng — vẽ ngược lại thì cả bốn cái
+ * nổi hết lên trước và con chó dẹt ra như hình cắt giấy.
  */
-function drawDogSprite(x, y, sp, scale, rot) {
+function drawDogSprite(x, y, sp, scale, rot, frame) {
   const bw = sp.bodyW * scale;
   const bh = sp.bodyH * scale;
 
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
+  ctx.drawImage(sp.legs[frame],
+    -bw / 2 + sp.legFx * bw, -bh * 0.62 + sp.legFy * bh, sp.legFw * bw, sp.legFh * bh);
   ctx.drawImage(sp.body, -bw / 2, -bh * 0.62, bw, bh);
   ctx.restore();
 

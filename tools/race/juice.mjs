@@ -194,6 +194,28 @@ export function gallopAt(phase, dist, amp = 1) {
 export const gallopPhase = (dog) => ((dog * 2654435761) % 1000) / 1000 * Math.PI * 2;
 
 /**
+ * Khung tư thế chân trong dải đã nướng, cũng suy ra từ QUÃNG ĐƯỜNG.
+ *
+ * Cùng một biến u với gallopAt, và một sải chân dài đúng π — tức là đúng một
+ * vòng nhấp nhô của thân. Phải khớp: thân hạ xuống là lúc chân chạm đất, thân
+ * vươn lên là lúc cả bốn chân rời cỏ. Lệch nhịp thì con chó nhún một đằng, đạp
+ * một nẻo, và mắt đọc ra ngay dù không chỉ được ra là sai chỗ nào.
+ *
+ * Suy từ quãng đường nên nó thừa hưởng nguyên tính chất của gallopAt: chạy
+ * nhanh thì sải mau, và đứng yên — kể cả lúc đóng băng ở khung va chạm — thì
+ * chân đứng yên theo.
+ *
+ * @param phase  lệch pha riêng của con chó, từ gallopPhase
+ * @param dist   quãng đường đã chạy, theo tỉ lệ đường đua
+ * @param frames số tư thế trong một sải, từ GALLOP_FRAMES của dog.mjs
+ */
+export function gallopFrame(phase, dist, frames) {
+  const u = dist * JUICE.GALLOP_FREQ + phase;
+  const f = Math.floor((u / Math.PI) * frames) % frames;
+  return f < 0 ? f + frames : f;
+}
+
+/**
  * Máy quay thở.
  *
  * Một máy quay đứng chết cứng đọc ra như ảnh chụp màn hình, kể cả khi mọi thứ

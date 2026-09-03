@@ -14,8 +14,9 @@
 import { draw, makeTestRoster } from "../fairness/fairness.mjs";
 import { buildRace } from "./director.mjs";
 import {
-  JUICE, makeBeatWatcher, streakPitch, gallopAt, gallopPhase, breatheAt, makeDust,
+  JUICE, makeBeatWatcher, streakPitch, gallopAt, gallopPhase, gallopFrame, breatheAt, makeDust,
 } from "./juice.mjs";
+import { GALLOP_FRAMES } from "../web/dog.mjs";
 
 let failed = 0;
 function check(name, ok, detail = "") {
@@ -206,6 +207,55 @@ console.log(`${RACES.length} cuộc đua (8, 20, 45, 90, 150 chó)\n`);
   const b = gallopAt(1.1, 0.5, 1);
   check("Đứng yên thì chân cũng đứng yên", a.bob === b.bob && a.sy === b.sy,
     "nhịp chân theo quãng đường, không theo đồng hồ");
+}
+
+// =====================================================================
+//  6b. KHUNG TƯ THẾ CHÂN
+//
+//  gallopAt lo cái thân nhấp nhô; gallopFrame lo bốn cái chân. Hai thứ phải đi
+//  chung một nhịp, và đó chính là phép kiểm quan trọng nhất ở đây.
+// =====================================================================
+{
+  let bad = 0;
+  for (let i = 0; i <= 5000; i++) {
+    const f = gallopFrame(gallopPhase(i % 150), i / 5000, GALLOP_FRAMES);
+    if (!Number.isInteger(f) || f < 0 || f >= GALLOP_FRAMES) bad++;
+  }
+  check("Khung tư thế luôn nằm trong dải đã nướng", bad === 0,
+    `${GALLOP_FRAMES} tư thế — chỉ số ngoài dải là một sprite rỗng, không phải một lỗi văng ra`);
+
+  // Một sải chân dài đúng π trong biến u, tức là đúng một vòng nhấp nhô của
+  // thân. Lệch nhịp thì con chó nhún một đằng, đạp một nẻo.
+  const stride = Math.PI / JUICE.GALLOP_FREQ;
+  let mismatched = 0;
+  for (let i = 0; i < 400; i++) {
+    const d = i / 400;
+    if (gallopFrame(0.3, d, GALLOP_FRAMES) !== gallopFrame(0.3, d + stride, GALLOP_FRAMES)) {
+      mismatched++;
+    }
+  }
+  check("Một sải chân khớp đúng một vòng nhấp nhô của thân", mismatched === 0,
+    `${(1 / stride).toFixed(0)} sải trên một vòng đua`);
+
+  // Đứng yên thì chân đứng yên — cùng tính chất với gallopAt, và đây là thứ
+  // giữ cho cú đóng băng ở khung va chạm còn nguyên sức nặng.
+  check("Đứng yên thì tư thế chân cũng đứng yên",
+    gallopFrame(1.1, 0.5, GALLOP_FRAMES) === gallopFrame(1.1, 0.5, GALLOP_FRAMES));
+
+  // Chạy thì phải đổi tư thế. Một cuộc đua 40 giây phải đi qua cả dải, không
+  // được kẹt ở một hai khung — kẹt thì chân "có động" trên giấy mà đứng chết
+  // trên màn hình.
+  const seen = new Set();
+  for (let i = 0; i <= 1000; i++) seen.add(gallopFrame(0.3, i / 1000, GALLOP_FRAMES));
+  check("Cả dải tư thế đều được dùng tới trong một cuộc đua",
+    seen.size === GALLOP_FRAMES, `${seen.size}/${GALLOP_FRAMES} tư thế xuất hiện`);
+
+  // Cả đàn cùng một khung tư thế thì đó là một khối duy nhất đang đạp chân,
+  // không phải một đàn chó.
+  const spread = new Set();
+  for (let dog = 0; dog < 150; dog++) spread.add(gallopFrame(gallopPhase(dog), 0.4, GALLOP_FRAMES));
+  check("Cả đàn không đạp chân cùng một nhịp", spread.size >= GALLOP_FRAMES - 1,
+    `${spread.size}/${GALLOP_FRAMES} tư thế có mặt cùng lúc trong đàn 150 con`);
 }
 
 // =====================================================================

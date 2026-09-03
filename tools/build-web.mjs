@@ -219,6 +219,9 @@ const redlightBundle = bundle([
   "tools/fairness/sha256.mjs",
   "tools/fairness/fairness.mjs",
   "tools/race/feel.mjs",
+  // Nhịp sải chân dùng chung với sân đua: cùng một chú chó thì phải chạy cùng
+  // một kiểu ở cả hai trò, và có đúng một chỗ định nghĩa nó.
+  "tools/race/juice.mjs",
   "tools/redlight/elimination.mjs",
   "tools/web/sound.mjs",
   "tools/web/roster-input.mjs",

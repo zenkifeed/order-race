@@ -79,7 +79,155 @@ function roundRect(g, x, y, w, h, r) {
   g.roundRect(x, y, w, h, r);
 }
 
-/** Thân, đầu, chân, đuôi — nhìn ngang, hướng sang phải. */
+// ─────────────────────────────────────────────────────────────────────────
+//  Nhịp chân
+//
+//  Bốn cái chân cũ là bốn hình chữ nhật NẰM CHẾT trong sprite thân. Cả đàn
+//  nhấp nhô và nén giãn theo quãng đường, nhưng chân thì không nhúc nhích —
+//  và một con vật trượt trên mặt cỏ với bốn cái que cứng đơ đọc ra thành đồ
+//  vật đang bị kéo, không thành sinh vật đang chạy.
+//
+//  NƯỚNG THÀNH DẢI TƯ THẾ, KHÔNG VẼ LẠI MỖI KHUNG HÌNH. Điều khoản của lớp
+//  cảm giác — "đừng cấp phát trên đường đi nóng của hiệu ứng" — vẫn giữ
+//  nguyên: thêm juice mà mỗi khung hình lại dựng đường vẽ mới thì đúng vào
+//  cái bẫy mà cả file này được viết ra để tránh.
+//
+//  DẢI CHÂN DÙNG CHUNG GIỮA CÁC CON. Chân chỉ phụ thuộc MÀU LÔNG và việc có
+//  đi tất hay không — hoạ tiết thân bị cắt trong khung thân, phụ kiện thì ở
+//  trên đầu. 16 màu × 2 = nhiều nhất 32 dải cho cả đàn 150 con, thay vì 150
+//  dải. Không có chỗ dùng chung này thì chín tư thế × 150 con là hơn hai chục
+//  megabyte ảnh, tức là đổi một cái chân biết chạy lấy một cú khựng lúc mở.
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Số tư thế trong một sải chân.
+ *
+ * Mười, không phải tám. Ở đàn 45 người thì một sải kéo dài chừng 0,6 giây, nên
+ * tám khung là mười ba tư thế mỗi giây — đủ để thấy chân chạy, nhưng nó giật
+ * bên cạnh một cái thân nhấp nhô mượt hoàn toàn, và chính chỗ chênh đó là thứ
+ * mắt bắt được. Mười khung tốn thêm chừng hai megabyte ảnh cho cả đàn.
+ */
+export const GALLOP_FRAMES = 10;
+
+/** Tư thế đứng yên, nằm ngay sau dải sải chân. Dùng lúc xếp hàng và lúc nằm đơ. */
+export const NEUTRAL_FRAME = GALLOP_FRAMES;
+
+const LEG_W = 9;
+const LEG_LEN = 15;
+
+/**
+ * Bốn cái hông: tâm ngang, đỉnh chân, và lệch pha trong vòng sải.
+ *
+ * Hai chân sau lệch pha π so với hai chân trước — đó là cú nhảy chồm của loài
+ * bốn chân: sau đạp thì trước với, không phải bốn cái cùng lúc. Trong mỗi cặp
+ * còn lệch thêm một chút để chân gần và chân xa không dính làm một.
+ */
+const HIPS = [
+  { x: 31.5, y: 40, ph: 0 },                 // sau — xa
+  { x: 42.5, y: 41, ph: 0.42 },              // sau — gần
+  { x: 62.5, y: 41, ph: Math.PI },           // trước — xa
+  { x: 73.5, y: 40, ph: Math.PI + 0.42 },    // trước — gần
+];
+
+/**
+ * Biên độ đưa chân, radian.
+ *
+ * Rộng hơn mức "đúng giải phẫu", và cố ý. Trên sân, một chú chó cao chừng bốn
+ * mươi điểm ảnh và cái chân dài chừng mười — sải 35 độ ở cỡ đó là bàn chân
+ * nhích đi bốn điểm ảnh, tức là không ai thấy. 49 độ đưa nó lên tám, và tám
+ * điểm ảnh thì đọc ra được từ cuối phòng, kể cả trên máy chiếu.
+ */
+const SWING = 0.85;
+/** Mức co chân lúc thu về trước, theo tỉ lệ chiều dài chân. */
+const TUCK = 0.30;
+
+/**
+ * Tư thế bốn chân ở một khung trong sải.
+ *
+ * Thuần tính toán, không đụng canvas — nên kiểm thử được bằng máy ngoài trình
+ * duyệt, xem tools/web/dog-selftest.mjs.
+ *
+ * Chân duỗi hết cỡ trong lúc QUÉT VỀ SAU (đó là lúc nó chạm đất và đẩy) và co
+ * lại trong lúc THU VỀ TRƯỚC (lúc nó nhấc khỏi mặt cỏ). Làm ngược lại thì bàn
+ * chân cày xuống đất trên đường thu về, và mắt đọc ra ngay thành trượt băng.
+ *
+ * @param frame  0…GALLOP_FRAMES-1 là một vòng sải; GALLOP_FRAMES là tư thế đứng
+ * @param amp    biên độ, 0 là đứng thẳng hoàn toàn (dùng cho giảm chuyển động)
+ */
+export function legPose(frame, amp = 1, frames = GALLOP_FRAMES) {
+  const still = frame >= frames || amp <= 0;
+  const u = (frame / frames) * Math.PI * 2;
+  return HIPS.map((hip) => {
+    if (still) return { x: hip.x, y: hip.y, angle: 0, len: LEG_LEN };
+    const a = u + hip.ph;
+    return {
+      x: hip.x,
+      y: hip.y,
+      angle: SWING * amp * Math.sin(a),
+      len: LEG_LEN * (1 - TUCK * amp * Math.max(0, Math.cos(a))),
+    };
+  });
+}
+
+/**
+ * Khung chứa cả bốn chân lúc đưa hết cỡ, CỘNG cái bóng dưới chân.
+ *
+ * Bóng đi cùng chân chứ không ở lại với thân, vì thứ tự vẽ là bóng → chân →
+ * thân. Để bóng lại trong sprite thân thì nó phủ lên bàn chân, và vệt tốc độ
+ * — vốn chỉ vẽ lại sprite thân — sẽ kéo theo một hàng bóng bay lơ lửng.
+ *
+ * Xuất ra ngoài để kiểm thử được: một cái chân thò ra khỏi khung này thì bị cắt
+ * cụt, và nó chỉ cụt ở vài khung giữa sải — tức là đúng loại lỗi mà mở trang
+ * nhìn một cái không bắt được. Xem tools/web/dog-selftest.mjs.
+ */
+export const LEG_GEOMETRY = {
+  box: { x: 11, y: 34, w: 84, h: 32 },
+  legW: LEG_W,
+  legLen: LEG_LEN,
+  hips: HIPS,
+};
+const LEG_BOX = LEG_GEOMETRY.box;
+
+function drawGroundShadow(g) {
+  g.fillStyle = "rgba(0,0,0,.22)";
+  g.beginPath();
+  g.ellipse(ART_W / 2, ART_H - 4, 30, 5, 0, 0, Math.PI * 2);
+  g.fill();
+}
+
+function drawLegs(g, look, frame, amp) {
+  const fur = look.fur;
+  const socks = look.pattern === "tat";
+
+  g.save();
+  g.lineWidth = 2.2;
+  g.strokeStyle = INK;
+  g.lineJoin = "round";
+
+  for (const leg of legPose(frame, amp)) {
+    g.save();
+    g.translate(leg.x, leg.y);
+    g.rotate(leg.angle);
+    g.fillStyle = fur;
+    roundRect(g, -LEG_W / 2, 0, LEG_W, leg.len, 4);
+    g.fill();
+    g.stroke();
+    if (socks) {
+      g.fillStyle = "rgba(255,255,255,.72)";
+      roundRect(g, -LEG_W / 2, leg.len - 7, LEG_W, 7, 3);
+      g.fill();
+    }
+    g.restore();
+  }
+  g.restore();
+}
+
+/**
+ * Thân, đầu, đuôi — nhìn ngang, hướng sang phải.
+ *
+ * KHÔNG có chân: chân nằm ở drawLegs và được nướng thành một dải tư thế riêng,
+ * vì chân là thứ duy nhất trên con chó phải đổi theo từng khung hình.
+ */
 function drawBody(g, look) {
   const fur = look.fur;
 
@@ -102,14 +250,6 @@ function drawBody(g, look) {
   g.moveTo(20, 30);
   g.quadraticCurveTo(8, 26, 11, 15);
   g.stroke();
-
-  // chân sau rồi chân trước
-  g.fillStyle = fur;
-  for (const [x, y] of [[27, 40], [38, 41], [58, 41], [69, 40]]) {
-    roundRect(g, x, y, 9, 15, 4);
-    g.fill();
-    g.stroke();
-  }
 
   // thân
   g.fillStyle = fur;
@@ -153,9 +293,15 @@ function drawBody(g, look) {
   g.restore();
 }
 
-/** Hoạ tiết, cắt gọn trong thân để không tràn ra ngoài viền. */
+/**
+ * Hoạ tiết, cắt gọn trong thân để không tràn ra ngoài viền.
+ *
+ * "tat" — bốn chiếc tất trắng — không còn ở đây: nó nằm trên CHÂN, và chân giờ
+ * đổi tư thế mỗi khung hình. Vẽ tất theo toạ độ cũ thì bốn vệt trắng đứng yên
+ * trong khi bàn chân đã chạy đi mất.
+ */
 function drawPattern(g, look) {
-  if (look.pattern === "tron") return;
+  if (look.pattern === "tron" || look.pattern === "tat") return;
 
   g.save();
   roundRect(g, 20, 22, 58, 24, 12);
@@ -176,14 +322,6 @@ function drawPattern(g, look) {
       break;
     case "yen":
       g.fillRect(34, 20, 26, 30);
-      break;
-    case "tat":
-      g.restore();
-      g.save();
-      g.fillStyle = "rgba(255,255,255,.72)";
-      for (const [x, y] of [[27, 48], [38, 49], [58, 49], [69, 48]]) {
-        roundRect(g, x, y, 9, 7, 3); g.fill();
-      }
       break;
     case "matna":
       g.restore();
@@ -267,24 +405,51 @@ function drawAccessory(g, look) {
 }
 
 /**
- * Nướng một chú chó thành sprite dùng lại được, kèm biển tên gắn dưới chân.
+ * Nướng dải tư thế chân, dùng chung giữa mọi con cùng màu lông và cùng kiểu tất.
  *
- * @param name   tên hiển thị trên biển
- * @param look   ngoại hình từ assignLooks
- * @param scale  bội số độ phân giải; 2 cho màn retina và máy chiếu
+ * Bóng dưới chân nằm ở đây, vẽ TRƯỚC chân — xem chú thích ở LEG_BOX.
  */
+function bakeLegs(look, scale, amp, cache) {
+  const key = look.fur + (look.pattern === "tat" ? "|tat" : "");
+  if (cache && cache.has(key)) return cache.get(key);
+
+  const frames = [];
+  for (let f = 0; f <= GALLOP_FRAMES; f++) {
+    const c = document.createElement("canvas");
+    c.width = Math.ceil(LEG_BOX.w * scale);
+    c.height = Math.ceil(LEG_BOX.h * scale);
+    const g = c.getContext("2d");
+    g.scale(scale, scale);
+    // Vẽ trong đúng toạ độ của con chó rồi dời khung — nhờ vậy mọi con số
+    // hình học ở trên vẫn đọc thẳng được so với thân, không phải trừ đi tay.
+    g.translate(-LEG_BOX.x, -LEG_BOX.y);
+    drawGroundShadow(g);
+    drawLegs(g, look, f, amp);
+    frames.push(c);
+  }
+
+  if (cache) cache.set(key, frames);
+  return frames;
+}
+
 /**
- * Nướng một chú chó thành HAI sprite dùng lại được.
+ * Nướng một chú chó thành BA sprite dùng lại được: thân, dải chân, biển tên.
  *
- * Tách làm hai vì trên đường đua cong, thân phải xoay theo hướng chạy còn biển
- * tên phải đứng thẳng — gộp một sprite thì tên nằm nghiêng khi con chó ngã và không
- * đọc nổi. Hai lệnh drawImage mỗi con vẫn rẻ hơn hẳn mười lệnh vẽ đường.
+ * Thân và biển tên tách nhau vì trên đường đua thân phải xoay theo hướng chạy
+ * còn biển tên phải đứng thẳng — gộp một sprite thì tên nằm nghiêng khi con chó
+ * bị cắn ngã và không đọc nổi.
+ *
+ * Chân tách ra vì nó là thứ DUY NHẤT phải đổi theo từng khung hình. Ba lệnh
+ * drawImage mỗi con vẫn rẻ hơn hẳn mười lệnh vẽ đường, và dải chân dùng chung
+ * nên chi phí bộ nhớ tính theo số màu lông chứ không theo số người.
  *
  * @param name   tên hiển thị trên biển
  * @param look   ngoại hình từ assignLooks
  * @param scale  bội số độ phân giải; 2 cho màn retina và máy chiếu
+ * @param amp    biên độ sải chân, hạ xuống khi người xem chọn giảm chuyển động
+ * @param legCache  Map dùng chung dải chân giữa cả đàn; bakeAll tự dựng
  */
-export function bakeDog(name, look, scale = 2) {
+export function bakeDog(name, look, scale = 2, amp = 1, legCache = null) {
   const probe = document.createElement("canvas").getContext("2d");
   const font = "700 15px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
   probe.font = font;
@@ -295,11 +460,6 @@ export function bakeDog(name, look, scale = 2) {
   body.height = Math.ceil(ART_H * scale);
   const g = body.getContext("2d");
   g.scale(scale, scale);
-
-  g.fillStyle = "rgba(0,0,0,.22)";
-  g.beginPath();
-  g.ellipse(ART_W / 2, ART_H - 4, 30, 5, 0, 0, Math.PI * 2);
-  g.fill();
 
   drawBody(g, look);
   drawPattern(g, look);
@@ -333,10 +493,31 @@ export function bakeDog(name, look, scale = 2) {
   p.fillStyle = "#fff";
   p.fillText(label, plateW / 2, PLATE_H / 2 + 0.5);
 
-  return { body, plate, bodyW: ART_W, bodyH: ART_H, plateW, plateH: PLATE_H };
+  return {
+    body,
+    plate,
+    legs: bakeLegs(look, scale, amp, legCache),
+    bodyW: ART_W,
+    bodyH: ART_H,
+    plateW,
+    plateH: PLATE_H,
+    // Khung chân theo TỈ LỆ của khung thân, không theo điểm ảnh. Chỗ gọi đã có
+    // sẵn ô đích của thân (đã nhân độ phóng, đã nén giãn); nhân tỉ lệ vào là ra
+    // ô đích của chân, không cần biết ART_W hay LEG_BOX là bao nhiêu.
+    legFx: LEG_BOX.x / ART_W,
+    legFy: LEG_BOX.y / ART_H,
+    legFw: LEG_BOX.w / ART_W,
+    legFh: LEG_BOX.h / ART_H,
+  };
 }
 
-/** Nướng cả danh sách một lần, gọi lúc bắt đầu lượt. */
-export function bakeAll(names, looks, scale = 2) {
-  return names.map((n, i) => bakeDog(n, looks[i], scale));
+/**
+ * Nướng cả danh sách một lần, gọi lúc bắt đầu lượt.
+ *
+ * Một Map dùng chung cho cả đàn: dải chân nướng theo màu lông chứ không theo
+ * người, nên đàn 150 con vẫn chỉ tốn nhiều nhất 32 dải.
+ */
+export function bakeAll(names, looks, scale = 2, amp = 1) {
+  const legCache = new Map();
+  return names.map((n, i) => bakeDog(n, looks[i], scale, amp, legCache));
 }

@@ -531,10 +531,15 @@ function startRace() {
   const laneCount = lanesFor(n);
   const lanes = assignLanes(n, drawResult.seedHex, laneCount);
 
-  // Nướng sprite MỘT LẦN. Mỗi khung hình sau đó chỉ còn hai lệnh drawImage cho
-  // mỗi con, thay vì mười lệnh vẽ đường — xem chú thích đầu dog.mjs.
+  // Nướng sprite MỘT LẦN, kể cả chín tư thế chân. Mỗi khung hình sau đó chỉ còn
+  // ba lệnh drawImage cho mỗi con — chân, thân, biển tên — thay vì mười mấy lệnh
+  // vẽ đường. Xem chú thích đầu dog.mjs.
+  //
+  // Giảm chuyển động thì HẠ biên độ sải chân chứ không tắt: một con vật chạy mà
+  // bốn chân đứng im là thông tin sai, không phải là ít chuyển động hơn. Đúng
+  // điều khoản của lớp cảm giác — hạ biên độ, không bao giờ cắt về không.
   const looks = assignLooks(race.finalOrder);
-  const sprites = bakeAll(race.finalOrder, looks, 2);
+  const sprites = bakeAll(race.finalOrder, looks, 2, MOTION);
 
   // Đàn ít người thì vẽ to hơn, để biển tên trên lưng đọc được.
   const dogScale = Math.max(0.34, Math.min(0.66, 0.70 - n * 0.0019));
@@ -895,13 +900,18 @@ function spawnDust() {
 /**
  * Vệt tốc độ sau lưng nhóm dẫn đầu trong đoạn nước rút.
  *
- * Vẽ chính sprite thân, lùi lại một đoạn theo hướng chạy, mờ dần. Ở 60 khung
+ * Vẽ lại chính con chó, lùi lại một đoạn theo hướng chạy, mờ dần. Ở 60 khung
  * hình mỗi giây thì tốc độ không tự đọc ra được — mọi thứ đều mượt như nhau,
  * kể cả lúc chậm. Vệt kéo lại là cách rẻ nhất để "đang phi hết sức" khác được
  * với "đang chạy đều".
  *
- * Chỉ ba con đầu, chỉ từ mốc 72%: sáu lệnh vẽ thêm, và chỉ ở đúng đoạn mà tốc
- * độ là thứ đáng nói tới.
+ * Mỗi cái bóng lùi lại MỘT TƯ THẾ CHÂN so với cái trước, chứ không lặp lại đúng
+ * tư thế hiện tại. Ba lần cùng một dáng thì đó là một cái bóng nhoè; ba dáng
+ * liên tiếp của sải chân thì đó là chuyển động đông cứng lại — đúng thứ mà một
+ * vệt tốc độ lẽ ra phải nói.
+ *
+ * Chỉ ba con đầu, chỉ từ mốc 72%: mười hai lệnh vẽ thêm, và chỉ ở đúng đoạn mà
+ * tốc độ là thứ đáng nói tới.
  */
 function drawStreaks(fs, tn) {
   const s = state;
@@ -914,12 +924,13 @@ function drawStreaks(fs, tn) {
     const bh = sp.bodyH * s.dogScale;
     const ca = Math.cos(fs.pa[dog]);
     const sa = Math.sin(fs.pa[dog]);
+    const now = gallopFrame(phases[dog], fs.pos[dog], GALLOP_FRAMES);
     for (let g = 1; g <= 2; g++) {
       ctx.globalAlpha = (0.26 / g) * MOTION;
       ctx.save();
       ctx.translate(fs.px[dog] - ca * bw * push * g * 2.4, fs.py[dog] - sa * bw * push * g * 2.4);
       ctx.rotate(fs.pa[dog]);
-      ctx.drawImage(sp.body, -bw / 2, -bh * 0.62, bw, bh);
+      paintDog(sp, bw, bh, (now - g + GALLOP_FRAMES) % GALLOP_FRAMES);
       ctx.restore();
     }
   }
@@ -1089,18 +1100,27 @@ function togglePause() {
  * nghiêng gần tám mươi độ còn biển tên vẫn phải đọc được. Đó là lý do sprite
  * được tách làm hai, và giờ nó có thêm một lý do nữa để tách.
  *
- * Nhịp sải chân — nhấp nhô cộng nén giãn — suy ra từ QUÃNG ĐƯỜNG chứ không từ
- * đồng hồ. Nhờ vậy chân tự khớp với tốc độ, và trong lúc đóng băng ở khung va
- * chạm thì chân cũng đứng yên. Nếu suy từ đồng hồ thì đàn chó vẫn nhún nhảy
- * trong khi cả màn hình đã đứng hình, và cú đóng băng mất sạch sức nặng.
+ * Nhịp sải chân — bốn cái chân, cộng nhấp nhô, cộng nén giãn — suy ra từ QUÃNG
+ * ĐƯỜNG chứ không từ đồng hồ. Nhờ vậy chân tự khớp với tốc độ, và trong lúc
+ * đóng băng ở khung va chạm thì chân cũng đứng yên. Nếu suy từ đồng hồ thì đàn
+ * chó vẫn nhún nhảy trong khi cả màn hình đã đứng hình, và cú đóng băng mất
+ * sạch sức nặng.
  */
 function drawDogSprite(dog, fs, sp, scale, isWinner) {
   // Con đang bị cắn thì KHÔNG chạy: nó nằm nghiêng và đứng im. Nhịp sải chân
-  // tắt hẳn ở đây — một con vừa nằm quay đơ vừa nhún chân là hai thông điệp
+  // tắt hẳn ở đây — một con vừa nằm quay đơ vừa đạp chân là hai thông điệp
   // đánh nhau, và người xem tin cái nào cũng đều sai.
+  //
+  // Lúc đếm ngược cũng vậy: cả đàn đang ĐỨNG ở vạch xuất phát. Lấy khung theo
+  // quãng đường thì quãng đường bằng 0 và mỗi con đứng chết trong một tư thế
+  // giữa sải, tức là bốn chân xoạc ra mà không đi đâu cả. Tư thế đứng có sẵn
+  // trong dải chính là để dành cho hai chỗ này.
   const since = bites ? bites.sinceOf(dog, state.t) : -1;
   const stunned = since >= 0;
+  const still = stunned || state.phase === "countdown";
   const g = stunned ? FLAT : gallopAt(phases[dog], fs.pos[dog], MOTION);
+  const frame = still ? NEUTRAL_FRAME
+                      : gallopFrame(phases[dog], fs.pos[dog], GALLOP_FRAMES);
   const bw = sp.bodyW * scale * g.sx;
   const bh = sp.bodyH * scale * g.sy;
   const x = fs.px[dog];
@@ -1116,7 +1136,7 @@ function drawDogSprite(dog, fs, sp, scale, isWinner) {
     ctx.ellipse(0, -bh * 0.12, bw * 0.56, bh * 0.46, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
-  ctx.drawImage(sp.body, -bw / 2, -bh * 0.62, bw, bh);
+  paintDog(sp, bw, bh, frame);
   ctx.restore();
 
   const pw = sp.plateW * scale * 0.92;
@@ -1143,6 +1163,24 @@ function drawDogSprite(dog, fs, sp, scale, isWinner) {
 
 /** Không nhún, không nén giãn. Dùng cho con đang nằm. */
 const FLAT = { bob: 0, sx: 1, sy: 1 };
+
+/**
+ * Chân rồi thân, trong ô đích đã dựng sẵn của chỗ gọi.
+ *
+ * Chân TRƯỚC thân, vì hai cái chân xa phải khuất sau bụng — vẽ ngược lại thì cả
+ * bốn cái nổi hết lên trước và con chó dẹt ra như hình cắt giấy. Cái bóng nằm
+ * trong sprite chân nên nó cũng tự vào đúng chỗ: dưới cùng.
+ *
+ * Ô đích của chân là ô đích của thân nhân với bốn tỉ lệ do dog.mjs trả về, nên
+ * chân nén giãn theo đúng con chó mà không cần biết gì về hình học của nó.
+ */
+function paintDog(sp, bw, bh, frame) {
+  const x0 = -bw / 2;
+  const y0 = -bh * 0.62;
+  ctx.drawImage(sp.legs[frame],
+    x0 + sp.legFx * bw, y0 + sp.legFy * bh, sp.legFw * bw, sp.legFh * bh);
+  ctx.drawImage(sp.body, x0, y0, bw, bh);
+}
 
 function renderRail(order) {
   const s = state;

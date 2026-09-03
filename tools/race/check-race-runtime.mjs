@@ -302,9 +302,13 @@ const roster150 = Array.from({ length: 150 }, (_, i) => `Nhân viên ${i + 1}`);
   check("Đàn 150 người chạy trọn cuộc đua", r.error === null && r.podium,
     r.error || `${r.frames} khung hình, ${r.drawn.toLocaleString("vi")} lệnh drawImage`);
 
-  // Cắt bớt phải THẬT SỰ cắt: 150 con × 2 lệnh × số khung hình là trần trên.
+  // Cắt bớt phải THẬT SỰ cắt: 150 con × 3 lệnh × số khung hình là trần trên.
   // Con số thật phải thấp hơn trần đó, nếu không thì đường cắt chưa hề chạy.
-  const ceiling = 150 * 2 * r.frames;
+  //
+  // Ba lệnh chứ không phải hai kể từ khi bốn cái chân biết cử động: chân, thân,
+  // biển tên. Chân là một sprite riêng vì nó là thứ duy nhất trên con chó phải
+  // đổi theo từng khung hình — xem chú thích ở phần nhịp chân trong dog.mjs.
+  const ceiling = 150 * 3 * r.frames;
   check("Cắt bớt ngoài khung hình có chạy thật", r.drawn < ceiling * 0.98,
     `${r.drawn.toLocaleString("vi")} lệnh so với trần ${ceiling.toLocaleString("vi")} — ` +
     `bớt ${((1 - r.drawn / ceiling) * 100).toFixed(1)}%`);

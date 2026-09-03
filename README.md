@@ -336,6 +336,40 @@ Cùng đợt: nhịp sải chân nhấp nhô kèm nén giãn giữ nguyên thể
 cũng đứng yên; và máy quay thở 2,4% mức phóng trong chu kỳ 7,5 giây, đủ để khung
 hình không bao giờ thật sự đứng yên.
 
+#### Bốn cái chân biết chạy
+
+Bản trên vẫn còn một chỗ hở, và nó là chỗ hở đọc ra được ngay: cả con chó nhấp
+nhô, nén giãn, nghiêng ngả — nhưng **bốn cái chân nằm chết** trong sprite thân,
+suốt bốn mươi giây không nhúc nhích một độ nào. Một sinh vật trượt trên mặt cỏ
+với bốn cái que cứng đơ đọc ra thành đồ vật bị kéo đi, không thành con vật đang
+chạy.
+
+Chân tách khỏi sprite thân và được **nướng thành mười tư thế** của một sải, cộng
+một tư thế đứng. Cách làm phải giữ nguyên điều khoản gốc — *đừng dựng mới trên
+đường đi nóng* — nên không có chuyện vẽ lại đường mỗi khung hình; và nó phải giữ
+nguyên chi phí bộ nhớ, nên **dải chân dùng chung theo màu lông**: chân chỉ phụ
+thuộc màu lông và việc có đi tất hay không, hoạ tiết thân thì bị cắt trong khung
+thân còn phụ kiện thì ở trên đầu. Đàn 150 con nướng ra **28 dải, 8,5 MB** ảnh
+chân, thay vì 150 dải và 46 MB.
+
+| Ràng buộc | Vì sao |
+|---|---|
+| Tư thế lấy theo **quãng đường**, cùng biến `u` với nhịp nhấp nhô | Một sải dài đúng π, tức đúng một vòng nhấp nhô: thân hạ xuống là lúc chân chạm đất. Lệch nhịp thì con chó nhún một đằng đạp một nẻo. |
+| Đứng yên thì chân đứng yên | Kể cả trong cú đóng băng ở khung va chạm. Lấy theo đồng hồ thì cả đàn vẫn đạp chân trong lúc màn hình đã đứng hình. |
+| Chân **duỗi lúc quét về sau**, co lúc thu về trước | Ngược lại thì bàn chân cày xuống đất trên đường thu về, và mắt đọc ra thành trượt băng. |
+| Sải 49°, không phải 35° | Trên sân, chân dài chừng mười điểm ảnh; sải "đúng giải phẫu" là bàn chân nhích bốn điểm ảnh, tức là không ai thấy. |
+| Vẽ chân **trước** thân | Hai chân xa phải khuất sau bụng. Vẽ ngược lại thì bốn cái nổi hết lên trước và con chó dẹt ra như hình cắt giấy. |
+| Giảm chuyển động **hạ** biên độ, không tắt | Một con vật đang chạy mà bốn chân đứng im là thông tin sai, không phải là ít chuyển động hơn. |
+
+Ba lệnh `drawImage` mỗi con thay vì hai — chân, thân, biển tên. Ở trò đèn đỏ thì
+cùng một cơ chế đó *chính là luật chơi*: đèn đỏ thì quãng đường đứng lại, nên bốn
+cái chân đứng lại theo mà không cần một dòng nào nói riêng cho nó.
+
+`npm run check:dog` kiểm phần quyết định tư thế — vòng sải khép kín ở chỗ nối,
+bốn chân không đạp trùng nhau, cặp sau ngược pha cặp trước, và **không cái chân
+nào thò ra khỏi khung ảnh** đã nướng: một cái chân bị cắt cụt chỉ cụt ở vài khung
+giữa sải, tức là đúng loại lỗi mà mở trang nhìn một cái không bắt được.
+
 ### Hiệu năng — nửa mà một cửa không cần trình duyệt đo được
 
 Ngân sách 20 ms chia đôi: nửa CPU (nội suy, xếp hạng, chiếu toạ độ, cắt bớt) và
