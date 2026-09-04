@@ -22,12 +22,29 @@
 
   /* Không bao giờ dùng easing tuyến tính. */
   --ease-pop:cubic-bezier(.34,1.56,.64,1);
+  /* Một thang thời gian DUY NHẤT cho cả màn hình. Mọi thứ vào màn đều lấy mốc
+     từ --t0, nên đổi nhịp cả trang là đổi một con số, không phải đi lùng tám
+     chỗ rồi bỏ sót một chỗ — đúng cái đã làm nhịp vào màn cũ rời rạc. */
+  --t0:.24s;
   --ease-out:cubic-bezier(.22,1,.36,1);
   --ease-snap:cubic-bezier(.5,0,.1,1);
 }
 
 *{box-sizing:border-box}
 html,body{min-height:100%}
+
+/* ── hình nền ────────────────────────────────────────────────────────
+   Canvas nằm dưới cùng, KHÔNG thay nền của body: body vẫn sơn --paper để
+   trang còn một cái nền tử tế trong lúc canvas chưa vẽ xong, và cả khi JS
+   chết hẳn. Nền là thứ trang trí — nó không được phép là lý do trang trắng.
+   ─────────────────────────────────────────────────────────────────── */
+#bg{
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:0;pointer-events:none;
+  opacity:0;transition:opacity .7s var(--ease-out);
+}
+#bg.on{opacity:1}
+.wrap{position:relative;z-index:1}
 body{
   margin:0;background:var(--paper);color:var(--ink);
   font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -39,17 +56,34 @@ body{
 
 /* ── đầu trang ───────────────────────────────────────────────────────── */
 header{margin:8px 0 30px}
-.brand{display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:13px}
 .brand .mark{
-  width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  width:52px;height:52px;border-radius:15px;display:grid;place-items:center;
   background:var(--turf);color:#fff;border:2.5px solid var(--ink);box-shadow:var(--shadow);
+  /* Con chó lao TỪ TRÁI vào, đúng chiều nó đang chạy. Lao ngược chiều mũi thì
+     mắt đọc ra là bị giật lùi chứ không phải đang phóng tới. */
+  animation:markIn .52s var(--ease-pop) var(--t0) backwards;
 }
-h1{font-size:clamp(26px,4.6vw,38px);line-height:1.05;letter-spacing:-.02em;margin:0}
-.lede{color:var(--ink-2);margin:14px 0 0;max-width:56ch}
+@keyframes markIn{
+  from{opacity:0;transform:translateX(-22px) rotate(-10deg) scale(.8)}
+}
+h1{
+  font-size:clamp(26px,4.6vw,38px);line-height:1.05;letter-spacing:-.025em;margin:0;
+  animation:riseIn .5s var(--ease-out) calc(var(--t0) + .08s) backwards;
+}
+/* Chữ hai tông: "Race" mang màu sân cỏ, nên tên sản phẩm và cái sân sau lưng
+   nó là cùng một thứ, không phải hai thứ tình cờ đứng cạnh nhau. */
+h1 .turf{color:var(--turf)}
+.lede{
+  color:var(--ink-2);margin:14px 0 0;max-width:56ch;
+  animation:riseIn .5s var(--ease-out) calc(var(--t0) + .16s) backwards;
+}
+@keyframes riseIn{from{opacity:0;transform:translateY(10px)}}
 
 .eyebrow{
   font-size:11.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
   color:var(--ink-3);margin:34px 0 12px;
+  animation:riseIn .5s var(--ease-out) calc(var(--t0) + .24s) backwards;
 }
 
 /* ── thẻ chọn trò chơi ───────────────────────────────────────────────
@@ -65,8 +99,10 @@ h1{font-size:clamp(26px,4.6vw,38px);line-height:1.05;letter-spacing:-.02em;margi
 .pick{
   padding:0;background:none;border:0;font:inherit;color:inherit;text-align:left;
   cursor:pointer;border-radius:20px;
-  animation:pop .5s var(--ease-pop) backwards;
-  animation-delay:calc(90ms + var(--n) * 80ms);
+  /* Thời lượng và độ trễ nằm CHUNG một khai báo. Tách ra hai dòng thì phần
+     treo vào --t0 rơi ra khỏi tầm mắt của cửa kiểm, và một hôm nào đó ai xoá
+     dòng dưới thì thẻ tự chạy theo nhịp riêng mà không cửa nào kêu. */
+  animation:pop .52s var(--ease-pop) calc(var(--t0) + .32s + var(--n) * .09s) backwards;
 }
 .pick:focus-visible{outline:3px solid var(--lure);outline-offset:4px}
 @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.9)}}
@@ -83,16 +119,39 @@ h1{font-size:clamp(26px,4.6vw,38px);line-height:1.05;letter-spacing:-.02em;margi
   transform:rotate(var(--rot,0deg));
   transition:transform .16s var(--ease-pop), box-shadow .16s var(--ease-out), border-color .16s;
 }
+/* Đổ bóng đi cùng độ cao: nhấc lên thì bóng DÀI ra, ấn xuống thì bóng cụt lại.
+   Chỉ dịch tấm thẻ mà bóng đứng yên thì nó trượt trên mặt giấy chứ không rời
+   khỏi mặt giấy — đó là chỗ mà cảm giác "decal dán" mất đi. */
 .pick:hover .card,.pick:focus-visible .card{
-  transform:rotate(0deg) translateY(-5px) scale(1.025);
+  transform:rotate(0deg) translateY(-6px) scale(1.03);
+  box-shadow:0 12px 0 var(--ink);
   border-color:var(--c);
 }
-.pick:active .card{transform:rotate(0deg) translateY(2px) scale(.96)}
+.pick:hover .hero,.pick:focus-visible .hero{transform:scale(1.07) rotate(-5deg)}
+.pick:active .card{
+  transform:rotate(0deg) translateY(3px) scale(.965);
+  box-shadow:0 2px 0 var(--ink);
+  transition-duration:.08s;   /* ấn xuống phải NHANH hơn nhả ra, mới ra sức nặng */
+}
 .pick:hover .bob,.pick:focus-visible .bob{animation-play-state:paused}
+
+/* Cú phóng vào game. Lấy đà → khung va chạm → theo đà.
+   Tiếng và rung hẹn đúng vào mốc 38% (≈130ms), không phải lúc bấm: bấm là lúc
+   người ta RA LỆNH, va chạm là lúc màn hình TRẢ LỜI, và tai bắt được độ lệch
+   giữa hai mốc đó ngay cả khi mắt không gọi tên được. */
+.pick.go{pointer-events:none}
+.pick.go .card{animation:launch .36s var(--ease-pop) forwards}
+.pick.go .bob{animation-play-state:paused}
+@keyframes launch{
+  0%{transform:rotate(0) translateY(4px) scale(.95)}
+  38%{transform:rotate(0) translateY(-12px) scale(1.07)}
+  100%{transform:rotate(0) translateY(-6px) scale(1.03)}
+}
 
 /* Icon là ngôi sao của thẻ: to, có nền tròn màu của trò chơi. */
 .card .hero{
   width:96px;height:96px;border-radius:50%;display:grid;place-items:center;
+  transition:transform .2s var(--ease-pop);
   background:color-mix(in srgb, var(--c) 14%, var(--surface));
   border:2.5px solid var(--ink);color:var(--c);
 }
@@ -134,10 +193,18 @@ h1{font-size:clamp(26px,4.6vw,38px);line-height:1.05;letter-spacing:-.02em;margi
 .ghost:active{transform:translateY(1px)}
 .ghost:focus-visible{outline:3px solid var(--lure);outline-offset:3px}
 
+/* Chân trang là một TẤM GIẤY, không phải chữ thả thẳng lên nền.
+   Đo trên chính hình nền vừa vẽ: ở dải này nền là cỏ sẫm, và chữ --ink-3 rơi
+   xuống 1,0:1 — tức là mất hẳn. Trước khi có hình nền thì nó nằm trên --paper
+   và được 3,8:1; giờ nằm trên --surface đục nên lên 4,4:1, tức còn khá hơn cũ.
+   Một hình nền nuốt mất chữ là một hình nền hỏng, dù nó đẹp tới đâu. */
 footer{
-  margin:34px 0 8px;padding-top:20px;border-top:2px solid var(--line);
+  margin:34px 0 8px;padding:14px 18px;
+  border:2px solid var(--line);border-radius:14px;
+  background:var(--surface);box-shadow:var(--shadow);
   display:flex;gap:12px;align-items:center;flex-wrap:wrap;
   font-size:13px;color:var(--ink-3);
+  animation:riseIn .5s var(--ease-out) calc(var(--t0) + .56s) backwards;
 }
 
 /* ── màn mở và chuyển cảnh ────────────────────────────────────────────
@@ -151,12 +218,11 @@ footer{
 #veil.gone{animation:none;opacity:0;visibility:hidden}
 @keyframes veilOut{to{opacity:0;visibility:hidden}}
 #veil .bootMark{
-  width:78px;height:78px;border-radius:20px;display:grid;place-items:center;
+  width:86px;height:86px;border-radius:22px;display:grid;place-items:center;
   background:var(--turf);color:#fff;border:3px solid var(--ink);box-shadow:var(--shadow-lg);
-  animation:bootPop .52s var(--ease-pop) backwards;
+  animation:bootPop .5s var(--ease-pop) backwards;
 }
-#veil .bootMark .ic{width:40px;height:40px}
-@keyframes bootPop{from{opacity:0;transform:scale(.7) rotate(-8deg)}}
+@keyframes bootPop{from{opacity:0;transform:scale(.62) rotate(-12deg)}}
 
 #wash{
   position:fixed;inset:0;z-index:1000;pointer-events:none;
@@ -166,11 +232,14 @@ footer{
 
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;animation-iteration-count:1!important}
-  .card,.btn,.ghost{transition-duration:.06s}
+  /* Ghìm cả transition, không chỉ animation: #bg mờ dần bằng transition nên
+     mục *{animation-duration} ở trên không với tới nó. */
+  .card,.ghost,.hero,#bg{transition-duration:.06s}
 }
 </style>
 </head>
 <body>
+<canvas id="bg" aria-hidden="true"></canvas>
 <div id="veil"><span class="bootMark" id="bootMark"></span></div>
 <div id="wash"></div>
 
@@ -179,12 +248,11 @@ footer{
   <header>
     <div class="brand">
       <span class="mark" id="brandMark"></span>
-      <h1>Order Race</h1>
+      <h1>Order <span class="turf">Race</span></h1>
     </div>
     <p class="lede">
       Công cụ quay thưởng nội bộ. Chọn một trò chơi để vào — danh sách và giải thưởng nhập ở
-      ngay trong trò đó. Kết quả do thuật toán chốt trước khi trò chơi bắt đầu và kiểm chứng
-      lại được sau buổi lễ.
+      ngay trong trò đó. Kết quả do thuật toán chốt trước khi trò chơi bắt đầu.
     </p>
   </header>
 
@@ -192,7 +260,6 @@ footer{
   <div class="picker" id="picker"></div>
 
   <footer>
-    <a class="ghost" href="verify.html" id="verifyLink">Trang kiểm chứng kết quả</a>
     <button class="ghost" id="mute" type="button"></button>
     <span>Phím tắt: <b>1</b> · <b>2</b> vào thẳng trò chơi.</span>
   </footer>
@@ -211,6 +278,7 @@ const GAMES = [
     href: "race.html",
     icon: "race",
     color: "var(--turf)",
+    tint: "#0f7a4f",   // giá trị thật của --turf; canvas không đọc được biến CSS
     wash: "#0b1a12",
     rot: "-1.4deg",
     name: "Đường đua",
@@ -222,6 +290,7 @@ const GAMES = [
     href: "redlight.html",
     icon: "referee",
     color: "var(--lure)",
+    tint: "#dd9c0c",   // giá trị thật của --lure
     wash: "#1b1405",
     rot: "1.6deg",
     name: "SquidGame",
@@ -239,8 +308,10 @@ const picker = $("picker");
 // sửa, chỉ chuyển tiếp — nhờ vậy đổi trò giữa buổi không phải dán lại 150 tên.
 const carried = decodeHandoff(location.hash) ? location.hash : "";
 
-$("brandMark").innerHTML = icon("trophy", 24);
-$("bootMark").innerHTML = icon("trophy", 40);
+// Cỡ gần bằng cả huy hiệu: khoảng đệm đã nằm sẵn trong khung nhìn của logo,
+// nên thu nhỏ thêm ở đây chỉ tạo ra một vành xanh rỗng quanh con chó.
+$("brandMark").innerHTML = logoMark(44);
+$("bootMark").innerHTML = logoMark(74);
 
 // Sàn phản hồi khi chạm: một bộ nghe cho mọi thứ bấm được, kể cả thẻ chọn trò
 // chơi vốn được dựng bằng JS sau khi trang đã chạy.
@@ -255,10 +326,86 @@ function paintMute() {
 muteBtn.addEventListener("click", () => { audio.setMuted(!audio.muted); paintMute(); });
 paintMute();
 
+// ---------------------------------------------------------------- hình nền
+// Cả khối này bọc trong "nếu có canvas". Hình nền là trang trí — máy nào không
+// dựng được ngữ cảnh 2D thì trang vẫn phải mở ra bình thường trên nền --paper.
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const bg = $("bg");
+const bgCtx = bg.getContext ? bg.getContext("2d") : null;
+
+if (bgCtx) {
+  const blobs = bakeBlobs((w, h) => {
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    return c;
+  });
+
+  let bgW = 0, bgH = 0, bgDpr = 1;
+  let tint = null, amt = 0, want = 0;
+
+  function fitBg() {
+    // dpr chặn ở 2: trên màn 3x thì tấm ảnh to gấp 2,25 lần mà mắt không phân
+    // biệt được ở một hình nền mờ như thế này.
+    bgDpr = Math.min(2, window.devicePixelRatio || 1);
+    bgW = bg.clientWidth || window.innerWidth;
+    bgH = bg.clientHeight || window.innerHeight;
+    bg.width = Math.floor(bgW * bgDpr);
+    bg.height = Math.floor(bgH * bgDpr);
+  }
+
+  function paintBg(nowSec) {
+    bgCtx.setTransform(bgDpr, 0, 0, bgDpr, 0, 0);
+    drawBackdrop(bgCtx, blobs, bgW, bgH, nowSec, { accent: tint, accentAmt: amt });
+  }
+
+  fitBg();
+  paintBg(0);
+  bg.classList.add("on");
+
+  if (REDUCED) {
+    // Đứng hẳn. Vẽ lại đúng khi có việc thật: đổi cỡ cửa sổ, hoặc đổi thẻ đang
+    // trỏ vào. Không vòng lặp, không hẹn giờ, không tốn gì lúc nằm yên.
+    window.addEventListener("resize", () => { fitBg(); paintBg(0); });
+    window.__bgRepaint = () => { amt = want; paintBg(0); };
+  } else {
+    let running = true;
+    let t0 = performance.now();
+    window.addEventListener("resize", fitBg);
+
+    // Tab bị ẩn thì rAF vẫn có thể bị gọi thưa chứ không dừng hẳn. Dừng tay
+    // cho chắc: quản trò mở trang này rồi chuyển sang slide cả buổi.
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) { running = false; return; }
+      running = true;
+      t0 = performance.now() - lastSec * 1000;
+      requestAnimationFrame(frame);
+    });
+
+    let lastSec = 0;
+    function frame(now) {
+      if (!running) return;
+      lastSec = (now - t0) / 1000;
+      // Ngả màu đi tới đích một cách mềm, không nhảy cóc.
+      amt += (want - amt) * 0.09;
+      paintBg(lastSec);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+    window.__bgRepaint = () => {};
+  }
+
+  window.__bgTint = (hex) => {
+    tint = hex;
+    want = hex ? 1 : 0;
+    window.__bgRepaint();
+  };
+} else {
+  window.__bgTint = () => {};
+}
+
 // Bấm bất kỳ đâu là bỏ qua màn mở — nó ngắn, nhưng quản trò mở đi mở lại nhiều
 // lần trong một buổi và không ai muốn xem lại cùng một hoạt cảnh mỗi lần.
 addEventListener("pointerdown", () => skipBoot($("veil")), { once: true });
-$("verifyLink").insertAdjacentHTML("afterbegin", icon("verify", 18));
 
 // ---------------------------------------------------------------- thẻ chọn
 GAMES.forEach((g, i) => {
@@ -279,22 +426,45 @@ GAMES.forEach((g, i) => {
       '</span>' +
     '</span>';
   b.dataset.tap = "primary";
-  b.addEventListener("click", () => launch(g));
+  b.addEventListener("click", () => launch(g, b));
+  // Sân ngả về màu của trò đang trỏ vào — đúng màu sẽ rửa màn khi bấm, nên cú
+  // chuyển cảnh bắt đầu từ trước khi ngón tay hạ xuống. Bàn phím cũng tính:
+  // đi bằng Tab thì cũng phải thấy đúng thứ mà con chuột thấy.
+  b.addEventListener("pointerenter", () => window.__bgTint(g.tint));
+  b.addEventListener("focus", () => window.__bgTint(g.tint));
+  b.addEventListener("pointerleave", () => window.__bgTint(null));
+  b.addEventListener("blur", () => window.__bgTint(null));
   picker.append(b);
 });
 
 // ------------------------------------------------------------------ vào game
-function launch(game) {
+// Cú phóng dài 360ms, khung va chạm ở mốc 38% — xem @keyframes launch.
+const HIT = REDUCED ? 0 : 0.36 * 0.38;
+
+function launch(game, card) {
   // Rửa màn bằng đúng màu của trò chơi sắp vào, rồi trang đích tan tấm phủ cùng
   // màu đó ra. Hai tài liệu khác nhau nhưng đọc thành một cú chuyển cảnh liền.
-  audio.tone({ freq: audio.vary(240), sweepTo: 700, dur: 0.3, type: "triangle", gain: 0.14 });
   const target = game.href + carried;
-  washOut($("wash"), game.wash, () => { location.href = target; });
+
+  // Ba kênh, cùng hẹn vào một mốc: hình nảy lên, tiếng rít, tay rung. Thiếu một
+  // kênh là cú bấm đọc ra thành hỏng, kể cả khi hai kênh kia đúng.
+  if (card) card.classList.add("go");
+  audio.tone({ freq: audio.vary(240), sweepTo: 760, dur: 0.32,
+               type: "triangle", gain: 0.15, at: HIT });
+  if (!REDUCED) setTimeout(() => buzz(18), HIT * 1000);
+
+  // Rửa màn bắt đầu NGAY SAU khung va chạm, không cùng lúc: cùng lúc thì tấm
+  // rửa nuốt mất cú nảy, và công dựng cú nảy thành công cốc.
+  setTimeout(() => washOut($("wash"), game.wash, () => { location.href = target; }),
+             REDUCED ? 0 : HIT * 1000 + 70);
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "1") { e.preventDefault(); launch(GAMES[0]); }
-  else if (e.key === "2") { e.preventDefault(); launch(GAMES[1]); }
+  // Phím tắt cũng phải thấy đúng cú nảy mà con chuột thấy — nếu không thì đi
+  // bằng bàn phím là một trải nghiệm hạng hai.
+  const cards = picker.children;
+  if (e.key === "1") { e.preventDefault(); launch(GAMES[0], cards[0]); }
+  else if (e.key === "2") { e.preventDefault(); launch(GAMES[1], cards[1]); }
 });
 
 })();

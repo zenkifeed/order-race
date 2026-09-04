@@ -257,6 +257,16 @@ const SHAKE_MOTION = REDUCED ? 0 : 1;
 /** Giây thật mà một chú chó bị loại bay lên rồi biến mất. */
 const POP_SEC = 0.55;
 
+/**
+ * Phần đầu của cú bay lên dành cho KHUNG VA CHẠM: con vật đứng nguyên chỗ,
+ * phình ra một nhịp và loé trắng, rồi mới bị hất đi.
+ *
+ * Bản trước cho nó bay lên ngay từ khung hình đầu tiên, nên viên đạn không có
+ * chỗ nào để "trúng" — con chó chỉ đơn giản là bắt đầu trôi lên trời. Va chạm
+ * phải có một nhịp đứng yên, nếu không thì không có gì va vào gì cả.
+ */
+const HIT_U = 0.12;
+
 const LABEL_FONT = "600 12px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif";
 const LABEL_H = 17;
 
@@ -291,7 +301,7 @@ function buildRoster() {
   const raw = document.getElementById("roster").value.trim();
   if (raw.length > 0) return raw.split(/\r?\n/);
   const n = Math.max(2, Math.min(150, Number(document.getElementById("n").value) || 45));
-  return makeTestRoster(1, n);
+  return makeDemoRoster(n);
 }
 
 // =========================================================================
@@ -377,6 +387,8 @@ function startGame() {
     facing: 0,          // 0 = quay lưng, 1 = quay mặt
     flinch: 0,          // rung mình khi bị doạ quay
     fired: new Set(),
+    locked: new Set(),      // ai đã khoá xong khung ngắm — để kêu đúng một tiếng
+    volleyOpened: -1,       // vòng đã nổ phát đầu tiên; phát đầu mới có dừng hình
     beeped: -1,
     countdownFrom: performance.now(),
     last: performance.now(),
@@ -489,7 +501,7 @@ function frame(now) {
   }
 
   updateReferee(dtReal);
-  processShots(dtReal);
+  processShots(dtReal, now / 1000);
   render(now / 1000);
   requestAnimationFrame(frame);
 }
@@ -630,20 +642,48 @@ function drawGuard(x, y, recoil, aimX, aimY) {
   ctx.restore();
 }
 
-/** Khung ngắm đỏ trên những người sắp bị bắn. Đây là đoạn chuẩn bị của loạt đạn. */
-function drawReticle(x, y, pulse) {
-  const r = 15 + Math.sin(pulse * RETICLE_PULSE) * 2.5;
+/**
+ * Khung ngắm đỏ trên người sắp bị bắn.
+ *
+ * lock đi từ 0 tới 1: khung mở rộng và nghiêng, rồi SIẾT vào đúng con vật và
+ * ngay ngắn lại. Bản trước vẽ khung ở cỡ cố định nên nó chỉ "hiện ra" — mà một
+ * khung ngắm hiện ra thì không nói được điều gì, còn một khung ngắm siết lại
+ * thì nói rằng có ai đó vừa tìm thấy mày.
+ *
+ * Khoá xong (lock = 1) mới bắt đầu thở. Thở ngay từ lúc đang siết thì hai
+ * chuyển động chồng lên nhau và không đọc ra chuyển động nào cả.
+ */
+function drawReticle(x, y, pulse, lock) {
+  const u = easeOutCubic(sat01(lock));
+  const breathe = lock >= 1 ? Math.sin(pulse * RETICLE_PULSE) * 2.5 : 0;
+  const r = 15 + (1 - u) * 34 + breathe;
+  const tilt = (1 - u) * 0.5;
+  const arm = 6 + (1 - u) * 5;
+
   ctx.save();
-  ctx.strokeStyle = "#e37a63";
-  ctx.lineWidth = 2;
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  ctx.globalAlpha = Math.min(1, lock * 4);
+  ctx.strokeStyle = lock >= 1 ? "#ff8f74" : "#e37a63";
+  ctx.lineWidth = 2 + u;
   for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     ctx.beginPath();
-    ctx.moveTo(x + sx * r, y + sy * r - sy * 6);
-    ctx.lineTo(x + sx * r, y + sy * r);
-    ctx.lineTo(x + sx * r - sx * 6, y + sy * r);
+    ctx.moveTo(sx * r, sy * r - sy * arm);
+    ctx.lineTo(sx * r, sy * r);
+    ctx.lineTo(sx * r - sx * arm, sy * r);
     ctx.stroke();
   }
   ctx.restore();
+}
+
+/** Khung ngắm của một người đã siết tới đâu, tại thời điểm này. */
+function lockOf(r, k, gameT) {
+  // So le nhau: khung quét lần lượt từng con chứ không bật cùng một lúc. Bật
+  // cùng lúc thì 40 khung hiện ra như một cái lưới, không ra một cuộc rà soát.
+  const m = Math.max(1, r.eliminated.length);
+  const dur = r.scanSec * 0.5;
+  const start = r.impactSec + (k / m) * (r.scanSec - dur);
+  return sat01((gameT - start) / dur);
 }
 
 function drawTracer(fromX, fromY, toX, toY, fade) {
@@ -670,13 +710,28 @@ function drawTracer(fromX, fromY, toX, toY, fade) {
  * một mớ ồn. Khi đó chỉ phát tiếng cho một phần số phát — tai vẫn nghe ra liên
  * thanh, mà không vỡ tiếng.
  */
-function processShots(dtReal) {
+function processShots(dtReal, nowReal) {
   const s = state;
   for (const g of s.guards) g.recoil = Math.max(0, g.recoil - dtReal / 0.16);
 
   const roundIdx = s.game.roundAt(s.gameT);
   const r = roundIdx > 0 ? s.game.schedule[roundIdx - 1] : null;
   const soundEvery = r ? Math.max(1, Math.min(3, Math.ceil(0.045 / r.stagger))) : 1;
+
+  // ---- nhịp QUÉT: mỗi khung ngắm khoá xong kêu một tiếng khô, cao dần
+  //
+  // Cao dần theo thứ tự là chỗ đắt nhất của nhịp này: tai đếm được còn mấy
+  // người nữa tới lượt, mà không cần nhìn số. Loạt đông thì thưa tiếng đi
+  // theo đúng cách của loạt đạn, nếu không nó thành một tràng chuông.
+  if (r) {
+    r.eliminated.forEach((dog, k) => {
+      if (s.locked.has(dog) || lockOf(r, k, s.gameT) < 1) return;
+      s.locked.add(dog);
+      if (s.locked.size % soundEvery !== 0) return;
+      const step = k / Math.max(1, r.eliminated.length - 1);
+      audio.tone({ freq: 1180 + step * 620, dur: 0.045, type: "square", gain: 0.055 });
+    });
+  }
 
   for (let dog = 0; dog < s.game.n; dog++) {
     if (s.gameT < s.popAt[dog] || s.fired.has(dog)) continue;
@@ -693,8 +748,28 @@ function processShots(dtReal) {
     // vì từng cú giật rời rạc.
     fx.shake = Math.min(1, fx.shake + 0.14 * SHAKE_MOTION);
 
-    if (s.fired.size % soundEvery === 0) {
-      audio.noise({ dur: 0.075, gain: 0.12, cutoff: 5200 });
+    // PHÁT ĐẦU TIÊN của vòng là khung va chạm thật của loạt đạn, và nó được
+    // trả bằng một mức khác hẳn: dừng hình, loé, và một phát trầm riêng.
+    // Trước đây mọi phát đều như nhau, nên cả loạt đọc ra thành tiếng ồn nền
+    // — không có gì để cắt sự im lặng, thì cũng không có gì gọi là bắt đầu.
+    const first = roundIdx > 0 && s.volleyOpened !== roundIdx;
+    if (first) {
+      s.volleyOpened = roundIdx;
+      if (!REDUCED) s.freezeUntil = nowReal + 0.09;
+      fx.flash = Math.max(fx.flash, 0.5);
+      fx.punch = Math.max(fx.punch, 0.7);
+      audio.tone({ freq: audio.vary(92), sweepTo: 42, dur: 0.2, type: "sine", gain: 0.2 });
+      buzz(22);
+    }
+
+    if (first || s.fired.size % soundEvery === 0) {
+      // Rải nhẹ tiếng động và độ to: y hệt nhau ở phát thứ ba mươi thì tai
+      // ngừng nghe, và một loạt đạn ngừng được nghe là một loạt đạn hỏng.
+      // vary chỉ lệch ±3% — vừa cho cao độ, không đủ cho độ to. Ở đây rải rộng
+      // hẳn ra: tới phát thứ ba mươi mà mọi phát y hệt nhau thì tai ngừng nghe.
+      audio.noise({ dur: 0.075,
+                    gain: 0.12 * (0.75 + Math.random() * 0.5),
+                    cutoff: 5200 * (0.82 + Math.random() * 0.36) });
       audio.tone({ freq: audio.vary(118), sweepTo: 58, dur: 0.085, type: "square", gain: 0.07 });
     }
   }
@@ -753,10 +828,27 @@ function render(nowSec) {
 
     if (popped >= 0) {
       const u = popped / POP_SEC;
-      ctx.globalAlpha = 1 - u * u;
+      const hit = sat01(u / HIT_U);              // 0→1 trong nhịp va chạm
+      const fly = sat01((u - HIT_U) / (1 - HIT_U));
+
+      // Trong nhịp va chạm: y giữ nguyên, cỡ nảy lên rồi về. Sau đó mới bay.
+      const swell = Math.sin(hit * Math.PI) * 0.34;
+      const lift = fly * 130 * MOTION;
+      const scale = dogScale * (1 + swell + fly * 0.5);
+
+      ctx.globalAlpha = 1 - fly * fly;
       // Bị bắn bay lên thì bốn chân xoạc thẳng ra, không đạp nữa.
-      drawDogSprite(px, py - u * 130 * MOTION, s.sprites[dog], dogScale * (1 + u * 0.5),
-                    -u * 2.4, NEUTRAL_FRAME);
+      drawDogSprite(px, py - lift, s.sprites[dog], scale, -fly * 2.4, NEUTRAL_FRAME);
+
+      // Loé trắng ngay trên mình con vật, chỉ trong nhịp va chạm. Vẽ chồng ở
+      // chế độ cộng sáng: chỗ trong suốt cộng thêm 0, nên chỉ con chó sáng lên
+      // chứ không phải một mảng vuông quanh nó.
+      if (hit < 1) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = (1 - hit) * 0.85;
+        drawDogSprite(px, py - lift, s.sprites[dog], scale, -fly * 2.4, NEUTRAL_FRAME);
+        ctx.globalCompositeOperation = "source-over";
+      }
       ctx.globalAlpha = 1;
     } else {
       drawDogSprite(px + shiver, py + wobble, s.sprites[dog], dogScale, 0, frame);
@@ -768,9 +860,12 @@ function render(nowSec) {
   if (roundIdx > 0) {
     const r = g.schedule[roundIdx - 1];
     if (s.gameT >= r.impactSec && s.gameT < r.impactSec + r.aimSec) {
-      for (const dog of r.eliminated) {
-        drawReticle(x0 + (x1 - x0) * s.popProg[dog], yTop + (yBot - yTop) * s.lane[dog], nowSec);
-      }
+      // Chỉ số k chính là thứ tự bị bắn, nên khung ngắm siết theo đúng thứ tự
+      // mà đạn sẽ nổ — mắt đi trước tai một nhịp, và cả phòng đoán được ai kế.
+      r.eliminated.forEach((dog, k) => {
+        drawReticle(x0 + (x1 - x0) * s.popProg[dog], yTop + (yBot - yTop) * s.lane[dog],
+                    nowSec, lockOf(r, k, s.gameT));
+      });
     }
   }
 

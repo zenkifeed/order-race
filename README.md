@@ -4,7 +4,7 @@ Minigame quay thưởng dạng đua chó chibi 3D cho các buổi trao thưởng
 Tài liệu thiết kế đầy đủ: [`docs/GDD.html`](docs/GDD.html).
 
 **Trạng thái: M0, M1, M2 đạt. M3 đạt cửa cắn nhau.** Sân đã chuyển sang đường
-thẳng nhiều làn. Cỗ máy công bằng, trang kiểm chứng,
+thẳng nhiều làn. Cỗ máy công bằng,
 lớp đạo diễn 5 nhịp và một bản đua chạy được trên trình duyệt đều đã xong. Cửa
 hiệu năng của bản Unity thì vẫn phải có Unity project mới đo được.
 
@@ -15,7 +15,6 @@ Hai minigame, dùng chung một cỗ máy công bằng:
 | `web/index.html` | **Chọn trò chơi** | Điểm vào: bấm một thẻ là vào thẳng trò chơi |
 | `web/race.html` | **Đường đua** | Một cuộc đua 40 giây, top-K về đích đầu tiên |
 | `web/redlight.html` | **SquidGame** | Loại dần qua từng vòng, K người sống sót cuối cùng |
-| `web/verify.html` | Kiểm chứng | Khán giả tự tính lại kết quả sau buổi lễ |
 
 > Mở bằng trình duyệt là chạy. Cả hai minigame đều có nút phân tích chạy ngay
 > trong trang, chấm điểm kịch tính trên chính danh sách bạn nhập.
@@ -55,24 +54,26 @@ Hook chỉ bám vào merge. Ai đặt `pull.rebase = true` thì nó không nổ,
 npm run m2     # gồm cả m1 và m0
 ```
 
-Một lệnh chạy hết chuỗi: tự kiểm JS → sinh vector vàng → dựng trang kiểm chứng →
+Một lệnh chạy hết chuỗi: tự kiểm JS → sinh vector vàng → dựng các trang →
 kiểm tra trang → đối chiếu C# với JS. Cần `node` và `dotnet`, **không cần Unity**.
 
 | Lệnh | Việc |
 |---|---|
 | `npm run selftest` | Chứng minh thuật toán công bằng: phân bố đều, không thiên lệch |
 | `npm run vectors` | Sinh `tests/vectors/fairness-vectors.tsv` từ bản JS |
-| `npm run build:web` | Dựng `web/verify.html` và `web/race.html` từ các file `.mjs` |
+| `npm run build:web` | Dựng `web/index.html`, `web/race.html`, `web/redlight.html` từ các file `.mjs` |
 | `npm run hooks` | Bật hook tự dựng lại sau mỗi `git pull` (chạy một lần cho mỗi clone) |
-| `npm run check:verify` | Kiểm tra trang dựng ra khớp thư viện và tự chứa |
 | `npm run check:csharp` | Đối chiếu 10 220 phép tính giữa C# và JS |
 | `npm run drama` | Cửa kịch tính đường đua: 200 cuộc đua, 10 ràng buộc |
-| `npm run drama:redlight` | Cửa kịch tính trọng tài: 200 lượt, 16 ràng buộc |
+| `npm run drama:redlight` | Cửa kịch tính trọng tài: 200 lượt, 20 ràng buộc |
 | `npm run feel` | Lớp cảm giác: hệ số thời gian liền mạch, không nhảy bậc |
 | `npm run check:race` | Kiểm tra trang đua dựng ra: cú pháp, id, hình học |
 | `npm run check:redlight` | Kiểm tra trang trọng tài dựng ra |
 | `npm run check:roster` | Ô nhập danh sách: đếm, khoá, báo lỗi (chạy trên DOM giả) |
 | `npm run check:labels` | Xếp biển tên: tránh đè, ổn định, không nhấp nháy |
+| `npm run check:names` | Danh sách mẫu: tên 6–9 ký tự, không trùng, `draw()` nuốt được ở mọi cỡ |
+| `npm run check:backdrop` | Hình nền trang chọn: ngân sách mỗi khung, vẽ trong khung, đứng yên khi được bảo |
+| `npm run check:logo` | Logo: cú pháp đường dẫn, nằm giữa huy hiệu, còn đọc được ở 24px |
 | `npm run check:handoff` | Chuyển thiết lập giữa các trang |
 | `npm run check:hub` | Trang chọn trò chơi, kèm mấy điều khoản của gate UI/UX |
 | `npm run modes` | Cửa biến thể: 1 332 lượt chứng minh biến thể không đụng được kết quả |
@@ -98,7 +99,7 @@ Sửa thuật toán thì phải sửa cả hai bên rồi chạy lại `npm run 
 `<< 12` làm 10 120 phép so sánh báo đỏ.
 
 Bốn file dưới đây **sinh tự động, đừng sửa tay** (đã nằm trong `.gitignore`):
-`web/verify.html`, `web/race.html`, `music/playlist.json` và
+`web/index.html`, `web/race.html`, `web/redlight.html`, `music/playlist.json` và
 `tests/vectors/fairness-vectors.tsv`.
 
 File nhạc trong `music/` cũng không vào kho mã — chúng là tài sản của bạn và
@@ -115,9 +116,14 @@ tools/fairness/
   fairness.mjs                     ★ NGUỒN DUY NHẤT của thuật toán
   selftest.mjs                     kiểm tra tính công bằng
   gen-vectors.mjs                  sinh vector vàng
-  check-verify-page.mjs            kiểm tra trang đã dựng
 tools/web/sound.mjs                lớp âm thanh + nhạc, dùng chung hai game
 tools/web/roster-input.mjs         ô nhập danh sách, dùng chung hai game
+tools/web/names.mjs                hồ tên tiếng Anh cho danh sách mẫu
+tools/web/names-selftest.mjs       cửa danh sách mẫu
+tools/web/backdrop.mjs             hình nền phối cảnh của trang chọn
+tools/web/backdrop-selftest.mjs    cửa hình nền
+tools/web/logo.mjs                 logo đầu chó greyhound, SVG path
+tools/web/logo-selftest.mjs        cửa logo
 tools/web/labels.mjs               xếp biển tên tránh đè, dùng chung hai game
 tools/web/icons.mjs                bộ icon SVG path, dùng chung mọi trang
 tools/web/handoff.mjs              chuyển thiết lập giữa các trang qua URL
@@ -149,7 +155,6 @@ tools/redlight/
 tools/build-web.mjs                dựng cả ba trang web + quét thư mục nhạc
 music/                             thả file nhạc vào đây
 tools/csharp-check/                đối chiếu C# ↔ JS, chạy không cần Unity
-web/verify.template.html           mẫu trang kiểm chứng (sửa ở đây)
 web/race.template.html             mẫu trang đua (sửa ở đây)
 Assets/Scripts/Fairness/           bản C#, không tham chiếu UnityEngine
 Assets/Tests/EditMode/             cùng bộ đối chiếu đó, chạy trong Unity
@@ -177,8 +182,9 @@ máy chưa cài Unity, mà vẫn kiểm đúng mã thật.
 - **Tên tiếng Việt an toàn.** Chuẩn hoá NFC, sắp xếp theo byte UTF-8 chứ không
   theo locale, và một tập ký tự khoảng trắng liệt kê tường minh — vì `String.trim()`
   của JS cắt BOM còn `string.Trim()` của C# thì không.
-- **Khán giả kiểm chứng được.** `web/verify.html` là một file duy nhất, mở bằng
-  `file://` cũng chạy, không gọi mạng, mã nguồn đọc được bằng Ctrl+U.
+- **Tính lại được từ seed.** Kết quả chốt trước khi trò chơi chạy và dẫn xuất
+  hoàn toàn từ `(danh sách, tên giải)`. Cùng đầu vào thì mọi bản cài — JS hay
+  C# — phải ra cùng một bảng, và `npm run check:csharp` đối chiếu điều đó.
 
 ## M1 bảo đảm những gì
 
@@ -308,9 +314,9 @@ cỗ máy đã có. Bốc xác định theo seed, nên lượt chạy thử ở 
 chạy thật trước cả phòng. Bốn biến thể **cảnh** đổi cả kiểu trời lẫn thời tiết —
 chúng còn không được truyền vào lớp đạo diễn.
 
-> **Không biến thể nào được phép chạm vào kết quả.** Trang kiểm chứng không biết
-> gì về biến thể, nên một biến thể xê dịch dù một hạng là trang kiểm chứng nói
-> dối. Giữ bằng cấu trúc chứ không bằng lời hứa: mọi núm là hệ số nhân mặc định
+> **Không biến thể nào được phép chạm vào kết quả.** Lớp công bằng không biết gì
+> về biến thể, nên một biến thể xê dịch dù một hạng là màn hình nói khác cái bảng
+> mà seed sinh ra. Giữ bằng cấu trúc chứ không bằng lời hứa: mọi núm là hệ số nhân mặc định
 > 1.0 — mà nhân với 1.0 thì chính xác từng bit — và `npm run modes` dựng 1 332
 > lượt trên mọi biến thể đơn lẻ cùng mọi cặp để chứng minh lại điều đó.
 
@@ -485,7 +491,7 @@ bò dậy đuổi theo. Thuần tuý cho vui — và đây là phần nguy hiể
 > Mọi thứ khác ở lớp trình diễn chỉ đổi cách *kể lại* một kết quả đã chốt. Lớp
 > này đổi **vị trí của một chú chó trên màn hình** — mà vị trí trên màn hình
 > chính là thứ khán giả đọc ra thành thứ hạng. Làm ẩu một chút là buổi lễ công
-> bố một người, còn `web/verify.html` tính ra một người khác.
+> bố một người, còn lớp Kết quả đã chốt một người khác.
 
 Bốn ràng buộc, giữ bằng cấu trúc chứ không bằng lời hứa:
 

@@ -8,8 +8,9 @@
 // RÀNG BUỘC TUYỆT ĐỐI (GDD §4): mọi biến thể ở đây đều là biến thể TRÌNH DIỄN.
 // Không cái nào được đụng tới thứ hạng. Ở một trò chơi thường, biến thể "đối
 // xứng thì xếp hạng được, bất đối xứng thì chỉ cho PvE". Ở đây luật còn chặt
-// hơn một bậc: KHÔNG có biến thể nào được phép chạm vào kết quả, vì kết quả là
-// thứ khán giả sẽ tự tính lại ở web/verify.html sau buổi lễ.
+// hơn một bậc: KHÔNG có biến thể nào được phép chạm vào kết quả, vì kết quả đã
+// được lớp công bằng chốt từ trước khi cửa chuồng mở, và cùng một seed thì phải
+// ra cùng một bảng — dù chạy ở nhà hay chạy trước cả phòng.
 //
 // Cách giữ ràng buộc đó bằng cấu trúc, không bằng lời hứa:
 //

@@ -95,6 +95,36 @@ check("Mọi id được gọi đều tồn tại trong HTML", missing.length ==
     /body\{[^}]*background:var\(--paper\)/.test(css.replace(/\s*\n\s*/g, "")));
 
   check("Có tôn trọng giảm chuyển động", css.includes("prefers-reduced-motion"));
+
+  // ---- lớp chuyển động
+  //
+  // Hai điều khoản, cả hai đều là thứ không ai nhận ra khi hỏng: một cái làm
+  // trang giật ở máy yếu, một cái làm nhịp vào màn rời rạc dần theo từng lần sửa.
+  {
+    const frames = [...css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
+    check("Có đủ các khung hình đã khai", frames.length >= 5, `${frames.length} @keyframes`);
+
+    // Animate width/height/top/left/margin là bắt trình duyệt tính lại bố cục
+    // mỗi khung hình. Trên máy chiếu của phòng họp thì đó là nguồn giật số một.
+    const LAYOUT = /(^|[;{\s])(width|height|top|left|right|bottom|margin|padding|font-size|border-width)\s*:/;
+    const bad = frames.filter(([, , body]) => LAYOUT.test(body)).map(([, name]) => name);
+    check("Không khung hình nào động vào thuộc tính gây dựng lại bố cục",
+      bad.length === 0, bad.join(", "));
+
+    // Mọi thứ vào màn phải treo vào cùng một thang --t0. Một cái tuột ra ngoài
+    // là nó tự chạy theo nhịp riêng, và nhịp cả trang lệch dần sau mỗi lần sửa.
+    const enters = [...css.matchAll(/animation:\s*(markIn|riseIn|pop)\b[^;]*;/g)].map((m) => m[0]);
+    const off = enters.filter((a) => !a.includes("--t0"));
+    check("Mọi thứ vào màn đều treo vào thang thời gian chung",
+      enters.length >= 5 && off.length === 0,
+      `${enters.length} chỗ, ${off.length} chỗ tuột ra ngoài`);
+
+    // Cú phóng phải có ĐỈNH ở giữa, không phải một đường đi thẳng tới đích:
+    // đỉnh chính là khung va chạm mà tiếng và rung hẹn vào.
+    const launch = frames.find(([, name]) => name === "launch");
+    check("Cú phóng có khung va chạm ở giữa, không đi thẳng", !!launch &&
+      /\d+%\s*\{[^}]*scale\(1\.0[5-9]/.test(launch[2]), launch ? "" : "không có @keyframes launch");
+  }
   check("Có xử lý lề an toàn của thiết bị", css.includes("env(safe-area-inset"));
   check("Có trạng thái focus nhìn thấy được", (css.match(/:focus-visible/g) || []).length >= 3);
 }

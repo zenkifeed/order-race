@@ -10,7 +10,7 @@
 // Mọi thứ khác ở lớp trình diễn chỉ đổi cách KỂ LẠI một kết quả đã chốt. Cái
 // này thì đổi VỊ TRÍ của một chú chó trên màn hình — và vị trí trên màn hình
 // chính là thứ khán giả đọc ra thành thứ hạng. Làm ẩu một chút là buổi lễ công
-// bố một người, còn web/verify.html tính ra một người khác.
+// bố một người, còn lớp Kết quả đã chốt một người khác.
 //
 // Bốn ràng buộc, giữ bằng cấu trúc chứ không bằng lời hứa:
 //

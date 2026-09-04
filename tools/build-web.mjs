@@ -5,9 +5,10 @@
 // (ai đó tải về máy rồi mở trực tiếp), mà file:// thì chặn import module. Nên
 // thuật toán phải nằm nguyên văn trong trang.
 //
-// Nếu chép tay thì sớm muộn hai bản cũng lệch nhau — và một trang kiểm chứng
-// lệch với game còn tệ hơn là không có trang kiểm chứng nào. Vì vậy chúng được
-// sinh tự động từ đúng những file .mjs mà bộ kiểm thử đang chạy.
+// Nếu chép tay thì sớm muộn hai bản cũng lệch nhau — và một trang lệch với thư
+// viện mà bộ kiểm thử đang chạy thì mọi cửa đều nói dối: cửa xanh trên thư viện,
+// còn cả phòng thì nhìn vào bản chép tay đã cũ. Vì vậy các trang được sinh tự
+// động từ đúng những file .mjs mà bộ kiểm thử đang chạy.
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { extname, join } from "node:path";
@@ -141,23 +142,13 @@ function build({ template, output, injections }) {
   console.log(`  ${(html.length / 1024).toFixed(1)} KB · mã băm: ${sha256HexOfString(html).slice(0, 16)}`);
 }
 
-const verifyBundle = bundle(["tools/fairness/sha256.mjs", "tools/fairness/fairness.mjs"]);
-build({
-  template: "web/verify.template.html",
-  output: "web/verify.html",
-  injections: [{
-    marker: "/* INJECT:FAIRNESS */",
-    code: verifyBundle.code,
-    note: `${verifyBundle.count} file nguồn · gỡ ${verifyBundle.imports} câu import · ` +
-          `bỏ export ở ${verifyBundle.exports} khai báo`,
-  }],
-});
-
 // Trang chọn trò chơi không còn nhập liệu nên không cần cỗ máy công bằng lẫn ô
 // nhập danh sách. Gói nhẹ đi đáng kể, và bớt luôn một đường để trang này lỡ tay
 // đụng vào thuật toán bốc thăm.
 const hubBundle = bundle([
   "tools/web/icons.mjs",
+  "tools/web/logo.mjs",
+  "tools/web/backdrop.mjs",
   "tools/web/handoff.mjs",
   "tools/web/sound.mjs",
   "tools/web/tap.mjs",
@@ -188,6 +179,7 @@ const raceBundle = bundle([
   "tools/race/juice.mjs",
   "tools/web/sound.mjs",
   "tools/web/roster-input.mjs",
+  "tools/web/names.mjs",
   "tools/web/labels.mjs",
   "tools/web/icons.mjs",
   "tools/web/handoff.mjs",
@@ -225,6 +217,7 @@ const redlightBundle = bundle([
   "tools/redlight/elimination.mjs",
   "tools/web/sound.mjs",
   "tools/web/roster-input.mjs",
+  "tools/web/names.mjs",
   "tools/web/labels.mjs",
   "tools/web/icons.mjs",
   "tools/web/handoff.mjs",

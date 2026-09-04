@@ -454,7 +454,7 @@ pre em{color:var(--lure);font-style:normal;font-weight:500}
     <li><strong>Không mô phỏng vật lý đua thật.</strong> Vật lý thật cho ra kết quả nhàm chán và không tái tạo được (xem §5).</li>
     <li><strong>Không tài khoản, không backend bắt buộc.</strong> Có backend nghĩa là có nơi để nghi ngờ dữ liệu bị sửa. Toàn bộ chạy client-side.</li>
     <li><strong>Không quá 150 người / race.</strong> Trần cứng, đã chốt ngày 02.09.2026. Toàn bộ ngân sách hiệu năng ở §11 tính theo đúng con số này, và một số cấu trúc dữ liệu được cấp phát cố định theo nó. Trên ngưỡng đó thì chia nhiều lượt, không nhồi thêm.</li>
-    <li><strong>Không hỗ trợ mobile ở MVP.</strong> Sản phẩm dùng trên máy chiếu; mobile chỉ cần xem được trang kiểm chứng kết quả.</li>
+    <li><strong>Không hỗ trợ mobile ở MVP.</strong> Sản phẩm dùng trên máy chiếu; mobile không nằm trong phạm vi.</li>
   </ul>
 
   <div class="note">
@@ -574,12 +574,12 @@ pre em{color:var(--lure);font-style:normal;font-weight:500}
   <div class="note warn">
     <span class="lbl">Giới hạn đã biết và đã chấp nhận — quyết định ngày 02.09.2026</span>
     <p>Vì cả hai đầu vào đều biết trước buổi lễ, <strong>bất kỳ ai có mã nguồn đều tính trước được người thắng</strong>. Bản thiết kế đầu tiên có thêm một chuỗi do khán giả đọc tại chỗ, đặt ở đó đúng để chặn điều này; chuỗi đó đã được gỡ theo yêu cầu, đổi lấy việc bớt một bước trong nghi thức.</p>
-    <p><strong>Điều còn giữ được:</strong> kết quả tái tạo được, nên không ai sửa được thứ hạng ở khâu công bố mà không bị phát hiện. <strong>Điều mất đi:</strong> không còn gì bảo đảm người vận hành hệ thống chưa biết trước kết quả. Tài liệu này ghi rõ giới hạn đó thay vì để nó ẩn đi, và trang kiểm chứng cũng nói thẳng như vậy với khán giả.</p>
+    <p><strong>Điều còn giữ được:</strong> kết quả tái tạo được, nên không ai sửa được thứ hạng ở khâu công bố mà không bị phát hiện. <strong>Điều mất đi:</strong> không còn gì bảo đảm người vận hành hệ thống chưa biết trước kết quả. Tài liệu này ghi rõ giới hạn đó thay vì để nó ẩn đi.</p>
     <p>Nếu sau này muốn khôi phục bảo đảm đó, chỉ cần thêm lại một tham số vào <code>seed_hex</code> rồi nâng phiên bản thuật toán. Kiến trúc không phải đổi gì khác — đó chính là lý do lớp Kết quả được tách hẳn khỏi mọi thứ còn lại.</p>
   </div>
 
   <h3>Thuật toán xếp hạng</h3>
-  <p>Cố định, đơn giản, và phải viết được hai lần cho ra cùng một kết quả — một lần trong C#, một lần trong JS ở trang kiểm chứng.</p>
+  <p>Cố định, đơn giản, và phải viết được hai lần cho ra cùng một kết quả — một lần trong C#, một lần trong JS.</p>
 
 <pre><i>// PRNG: xorshift128, số học 32-bit không dấu, có wrap</i>
 state[0..3] = 4 word đầu của seed_hex (big-endian, uint32)
@@ -621,8 +621,6 @@ finalOrder = shuffle(roster_sorted)   <i>// index 0 = hạng 1</i></pre>
   </ol>
   <p>Ba bước đó áp cho cả tên giải thưởng, nên quản trò gõ thừa dấu cách ở cuối cũng không đổi kết quả. Lưu ý chữ hoa chữ thường <em>vẫn</em> phân biệt: "Giải Nhất" và "giải nhất" là hai lượt quay khác nhau.</p>
 
-  <h3>Trang kiểm chứng</h3>
-  <p>Một trang HTML tĩnh riêng biệt, <code>verify.html</code>, viết bằng JS thuần, không phụ thuộc Unity, chưa tới 200 dòng, ai cũng đọc được mã nguồn. Dán danh sách và seed vào, nó in ra thứ hạng đầy đủ. Chính vì trang này mà kiến trúc là <strong>Unity WebGL cho phần trình diễn + một trang web thuần cho phần kiểm chứng</strong> — không phải chọn một trong hai.</p>
 </section>
 
 <hr class="hr">
@@ -1015,7 +1013,6 @@ finalOrder = shuffle(roster_sorted)   <i>// index 0 = hạng 1</i></pre>
         <tr><td>Heap WebGL</td><td class="mono">384 MB cố định (tắt memory growth)</td></tr>
         <tr><td>Hosting</td><td class="mono">Tĩnh (GitHub Pages / S3 / nội bộ)</td></tr>
         <tr><td>Lưu trữ</td><td class="mono">localStorage — danh sách, lịch sử người trúng, cài đặt</td></tr>
-        <tr><td>Trang kiểm chứng</td><td class="mono">HTML/JS thuần, tách riêng, không phụ thuộc build</td></tr>
       </tbody>
     </table>
   </div>
@@ -1036,7 +1033,7 @@ finalOrder = shuffle(roster_sorted)   <i>// index 0 = hạng 1</i></pre>
     …
   ]
 }</pre>
-  <p>Đúng khối JSON này vừa là dữ liệu chạy trong game, vừa là nội dung xuất ra khi lưu trữ, vừa là thứ dán vào trang kiểm chứng. Một định dạng duy nhất, không có bản chuyển đổi ở giữa để lệch nhau.</p>
+  <p>Đúng khối JSON này vừa là dữ liệu chạy trong game, vừa là nội dung xuất ra khi lưu trữ, vừa là thứ đem đi tính lại bằng bản C#. Một định dạng duy nhất, không có bản chuyển đổi ở giữa để lệch nhau.</p>
 
   <h3>Hiệu năng — bài toán thật không phải 150 con chó</h3>
   <p>150 nhân vật × 2 000 tam giác = 300 000 tam giác một khung hình. Với bất kỳ GPU nào sản xuất sau 2015, kể cả GPU tích hợp, con số đó là <em>không đáng kể</em>. Cái giết Unity WebGL không phải hình học, mà là <strong>chi phí trên mỗi GameObject</strong>: 150 đối tượng × (SkinnedMeshRenderer + Animator + TextMeshPro + cây Transform) là hơn 600 component có callback chạy mỗi khung hình, trên một luồng duy nhất, trong một trình duyệt không cho phép đa luồng.</p>
@@ -1179,7 +1176,7 @@ float4 <b>nameUV</b>                            <i>// 16 byte — ô của ngư�
       <tbody>
         <tr>
           <td class="mono">M0</td>
-          <td><strong>Cỗ máy công bằng, không đồ hoạ</strong><br>PRNG + shuffle trong C# và JS, trang kiểm chứng, unit test đối chiếu hai môi trường</td>
+          <td><strong>Cỗ máy công bằng, không đồ hoạ</strong><br>PRNG + shuffle trong C# và JS, vector vàng, unit test đối chiếu hai môi trường</td>
           <td><strong>ĐÃ ĐẠT</strong> (thuật toán <code>v2</code>) — 10 220 phép đối chiếu, không sai lệch. Bộ đối chiếu đã được kiểm bằng phép đột biến: đổi một phép dịch bit trong C# làm 10 120 phép so sánh báo đỏ.</td>
         </tr>
         <tr>
@@ -1219,7 +1216,7 @@ float4 <b>nameUV</b>                            <i>// 16 byte — ô của ngư�
       <tbody>
         <tr>
           <td><strong>Có người nghi kết quả bị sắp đặt.</strong> Rủi ro nghiêm trọng nhất — nó phá hỏng cả buổi lễ và không sửa được sau khi đã xảy ra. Sau khi gỡ chuỗi của khán giả (§4), rủi ro này <em>tăng lên</em> chứ không giảm.</td>
-          <td>Seed hiện trên màn hình suốt cuộc đua, trang kiểm chứng gửi kèm kết quả, mã nguồn thuật toán mở cho cả công ty đọc. Cách giảm rủi ro thật sự còn lại là <strong>minh bạch về quy trình</strong>: nói trước rằng thứ hạng do thuật toán chốt, chỉ cho mọi người trang kiểm chứng, và đừng để một người vừa giữ mã nguồn vừa là người bấm nút. Nếu thấy vẫn chưa đủ, khôi phục chuỗi của khán giả là việc sửa một dòng.</td>
+          <td>Seed hiện trên màn hình suốt cuộc đua, seed và danh sách gửi kèm kết quả, mã nguồn thuật toán mở cho cả công ty đọc. Cách giảm rủi ro thật sự còn lại là <strong>minh bạch về quy trình</strong>: nói trước rằng thứ hạng do thuật toán chốt, công bố seed cùng danh sách, và đừng để một người vừa giữ mã nguồn vừa là người bấm nút. Nếu thấy vẫn chưa đủ, khôi phục chuỗi của khán giả là việc sửa một dòng.</td>
         </tr>
         <tr>
           <td><strong>Lộ chuyện đường đua được dàn dựng và bị hiểu nhầm là gian lận.</strong></td>
@@ -1227,7 +1224,7 @@ float4 <b>nameUV</b>                            <i>// 16 byte — ô của ngư�
         </tr>
         <tr>
           <td><strong>WebGL tải chậm hoặc lỗi trên máy phòng họp.</strong></td>
-          <td>Mở sẵn và tải xong trước buổi lễ. Có phương án dự phòng: trang kiểm chứng tự nó đã quay được thưởng dạng văn bản, không cần đồ hoạ.</td>
+          <td>Mở sẵn và tải xong trước buổi lễ. <strong>Không còn phương án dự phòng không-đồ-hoạ</strong> kể từ khi trang kiểm chứng bị bỏ — trình duyệt hỏng giữa buổi là hỏng cả buổi.</td>
         </tr>
         <tr>
           <td><strong>Tên tiếng Việt có dấu hiển thị sai hoặc sort khác nhau giữa hai môi trường.</strong></td>
@@ -1333,7 +1330,7 @@ float4 <b>nameUV</b>                            <i>// 16 byte — ô của ngư�
 
   <div class="note warn">
     <span class="lbl">Ràng buộc tuyệt đối</span>
-    <p>Ở một trò chơi thường, luật cân bằng cho biến thể là "đối xứng thì xếp hạng được, bất đối xứng thì chỉ cho PvE". Ở đây luật chặt hơn một bậc: <strong>không biến thể nào được phép chạm vào kết quả</strong> — vì kết quả là thứ khán giả sẽ tự tính lại ở <span class="mono">web/verify.html</span> sau buổi lễ, và trang đó không biết gì về biến thể cả. Một biến thể xê dịch dù một hạng là trang kiểm chứng nói dối.</p>
+    <p>Ở một trò chơi thường, luật cân bằng cho biến thể là "đối xứng thì xếp hạng được, bất đối xứng thì chỉ cho PvE". Ở đây luật chặt hơn một bậc: <strong>không biến thể nào được phép chạm vào kết quả</strong> — vì kết quả do lớp công bằng chốt từ trước khi cửa chuồng mở, và lớp đó không biết gì về biến thể cả. Một biến thể xê dịch dù một hạng là màn hình đang nói khác cái bảng mà seed sinh ra.</p>
   </div>
 
   <h3>Ba cách giữ ràng buộc đó bằng cấu trúc</h3>
@@ -1406,7 +1403,7 @@ float4 <b>nameUV</b>                            <i>// 16 byte — ô của ngư�
 
   <div class="note warn">
     <span class="lbl">Phần nguy hiểm nhất của cả kho mã</span>
-    <p>Mọi thứ khác ở lớp trình diễn chỉ đổi cách <em>kể lại</em> một kết quả đã chốt. Lớp này đổi <strong>vị trí của một chú chó trên màn hình</strong> — mà vị trí trên màn hình chính là thứ khán giả đọc ra thành thứ hạng. Làm ẩu một chút là buổi lễ công bố một người, còn <span class="mono">web/verify.html</span> tính ra một người khác.</p>
+    <p>Mọi thứ khác ở lớp trình diễn chỉ đổi cách <em>kể lại</em> một kết quả đã chốt. Lớp này đổi <strong>vị trí của một chú chó trên màn hình</strong> — mà vị trí trên màn hình chính là thứ khán giả đọc ra thành thứ hạng. Làm ẩu một chút là buổi lễ công bố một người, còn lớp Kết quả đã chốt một người khác.</p>
   </div>
 
   <p>Bốn ràng buộc, giữ bằng cấu trúc chứ không bằng lời hứa:</p>

@@ -176,6 +176,35 @@ console.log(`Dựng ${games.length} lượt chơi (${SIZES.join(", ")} người 
     `loạt dài nhất ${worst.toFixed(2)}s`);
 }
 
+// ------------------------- 9c. Đoạn khoá mục tiêu phải đủ dài để ĐỌC ĐƯỢC
+{
+  // Bản đầu để cả đoạn này 0,22 giây và không ai gọi tên được vấn đề — nó
+  // không hỏng, nó chỉ nhạt: khung ngắm hiện lên rồi đạn nổ gần như cùng lúc.
+  // Ngưỡng dưới đây là để lần sau ai đó siết thời lượng cho gọn thì cửa kêu,
+  // chứ không phải để nhịp lặng lẽ co về chỗ cũ qua vài lần sửa.
+  let short = 0, mismatch = 0, noHold = 0;
+  let minAim = Infinity;
+  for (const { g } of games) for (const r of g.schedule) {
+    minAim = Math.min(minAim, r.aimSec);
+    if (r.aimSec < 0.6) short++;
+    if (Math.abs(r.scanSec + r.holdSec - r.aimSec) > 1e-9) mismatch++;
+    if (r.holdSec < 0.2) noHold++;
+  }
+  check("Khoá mục tiêu đủ lâu để đọc được tên", short === 0,
+    `ngắn nhất ${minAim.toFixed(2)}s`);
+  check("Quét cộng ghìm đúng bằng cả đoạn khoá", mismatch === 0);
+  check("Có nhịp ghìm thật, không quét xong là bắn luôn", noHold === 0);
+
+  // Ở vòng cuối chỉ còn vài người bị loại; mỗi cái tên đáng được nghe riêng
+  // một phát chứ không lẫn vào một tràng.
+  let tight = 0;
+  for (const { g } of games) {
+    const last = g.schedule[g.schedule.length - 1];
+    if (last && last.eliminated.length <= 4 && last.stagger < 0.12) tight++;
+  }
+  check("Vòng cuối bắn thưa, từng phát một", tight === 0, `${tight} lượt bắn dồn`);
+}
+
 // ----------------------------------------- 10. Thời lượng phải hợp lý
 {
   const secs = games.map((x) => x.g.totalSec);

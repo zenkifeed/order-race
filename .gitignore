@@ -20,7 +20,6 @@ node_modules/
 
 # Sinh tu dong — dung sua tay, chay: npm run m0
 web/index.html
-web/verify.html
 web/race.html
 web/redlight.html
 tests/vectors/fairness-vectors.tsv

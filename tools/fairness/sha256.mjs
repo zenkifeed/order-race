@@ -1,8 +1,8 @@
 // SHA-256 thuần JS — Order Race / M0
 //
 // Vì sao không dùng crypto.subtle: nó bất đồng bộ, và không phải trình duyệt nào
-// cũng cấp nó khi trang được mở bằng file://. Trang kiểm chứng phải chạy được ở
-// mọi nơi, kể cả khi ai đó tải file về máy và mở trực tiếp — và quan trọng hơn,
+// cũng cấp nó khi trang được mở bằng file://. Các trang phải chạy được ở mọi
+// nơi, kể cả khi ai đó tải file về máy và mở trực tiếp — và quan trọng hơn,
 // toàn bộ thuật toán phải đọc được trong chính file đó.
 
 const K = new Uint32Array([

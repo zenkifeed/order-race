@@ -4,9 +4,10 @@
 // Cửa này trả lời hai câu hỏi, và câu thứ nhất quan trọng hơn hẳn:
 //
 //   1. Biến thể có đụng được vào kết quả không?  Phải là KHÔNG, trên mọi tổ hợp.
-//      Toàn bộ giá trị của dự án nằm ở chỗ khán giả tự tính lại được người thắng
-//      ở web/verify.html. Trang đó không biết gì về biến thể cả — nên nếu một
-//      biến thể xê dịch dù chỉ một hạng, trang kiểm chứng sẽ nói dối.
+//      Toàn bộ giá trị của dự án nằm ở chỗ người thắng do lớp công bằng chốt từ
+//      trước, tính lại được từ seed. Lớp đó không biết gì về biến thể cả — nên
+//      một biến thể xê dịch dù chỉ một hạng là màn hình đang nói khác cái bảng
+//      mà seed sinh ra, và không ai trong phòng phát hiện được.
 //
 //   2. Biến thể có thật sự khác nhau không?  Một biến thể chỉ đổi cái tên chứ
 //      không đổi cuộc đua thì tệ hơn là không có: nó hứa với cả phòng một điều

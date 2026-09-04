@@ -495,7 +495,7 @@ function buildRoster() {
   const raw = document.getElementById("roster").value.trim();
   if (raw.length > 0) return raw.split(/\r?\n/);
   const n = Math.max(2, Math.min(150, Number(document.getElementById("n").value) || 45));
-  return makeTestRoster(1, n);
+  return makeDemoRoster(n);
 }
 
 function startRace() {

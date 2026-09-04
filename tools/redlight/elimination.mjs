@@ -23,11 +23,17 @@ const ROUNDS_REACH = 0.8;
 /** Giây: trọng tài quay đầu — đây là đoạn chuẩn bị trước khung va chạm. */
 const TURN_SEC = 0.55;
 
-/** Giây: đứng im sau khi quay mặt, chưa tính thời gian cho từng người bay lên. */
-const RED_BASE = 0.9;
+/** Giây: đứng im SAU loạt đạn, để cả phòng kịp thấy còn lại những ai. */
+const RED_BASE = 0.62;
 
-/** Giây giữa hai phát bắn khi loạt đạn còn thưa. */
-const POP_STAGGER = 0.085;
+/**
+ * Giây giữa hai phát bắn khi loạt đạn còn thưa.
+ *
+ * 0,085 là quá nhanh ở những vòng cuối, chỗ chỉ còn hai ba người bị loại và
+ * mỗi cái tên đáng được nghe riêng một phát. Vòng đông thì trần VOLLEY_MAX
+ * bên dưới tự siết lại, nên nới con số này chỉ nới đúng chỗ cần nới.
+ */
+const POP_STAGGER = 0.14;
 
 /**
  * Trần thời gian của một loạt bắn, dù có bao nhiêu người bị loại.
@@ -38,8 +44,29 @@ const POP_STAGGER = 0.085;
  */
 const VOLLEY_MAX = 2.2;
 
-/** Giây khoá mục tiêu trước phát đầu tiên — đoạn chuẩn bị của mỗi loạt bắn. */
-const AIM_SEC = 0.22;
+// ---------------------------------------------------------------------------
+// Đoạn khoá mục tiêu, tách làm hai nhịp có tên
+//
+// Bản trước gộp cả đoạn này vào một con số 0,22 giây. Chưa bằng một cái chớp
+// mắt: khung ngắm hiện lên rồi đạn nổ gần như cùng lúc, nên cú bắn tới như một
+// tai nạn chứ không như một bản án. Mà cái làm cơ chế này đáng sợ không phải
+// phát đạn — nó là quãng bạn BIẾT mình đã bị nhìn thấy mà chưa chết.
+//
+// Hai nhịp, hai việc khác nhau:
+//
+//   QUÉT   khung ngắm siết dần vào từng con, so le nhau. Đây là lúc khán giả
+//          đọc tên. Phải đủ dài để mắt chạy hết một lượt danh sách.
+//   GHÌM   mọi khung ngắm đã khoá, không ai nhúc nhích, không một tiếng động.
+//          Không có nhịp này thì quét xong là bắn luôn, và toàn bộ công dựng
+//          đoạn quét bị nuốt mất.
+
+/** Giây: khung ngắm siết dần vào từng mục tiêu. */
+const SCAN_SEC = 0.42;
+
+/** Giây: đã khoá xong, ghìm lại trước phát đầu tiên. */
+const HOLD_SEC = 0.32;
+
+const AIM_SEC = SCAN_SEC + HOLD_SEC;
 
 /** Giây: nước rút của những người sống sót. */
 const SPRINT_SEC = 4.2;
@@ -141,6 +168,8 @@ export function buildElimination(finalOrder, seedHex, options = {}) {
       redSec,
       fakeOutAt,
       aimSec: AIM_SEC,
+      scanSec: SCAN_SEC,
+      holdSec: HOLD_SEC,
       stagger,
       volleySec,
       survivorsBefore: S[i - 1],
