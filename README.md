@@ -25,6 +25,30 @@ Hai minigame, dùng chung một cỗ máy công bằng:
 
 ---
 
+## Sau mỗi lần `git pull`: dựng lại
+
+`web/*.html` là file **sinh ra** và bị `.gitignore` bỏ qua có chủ đích — git chỉ
+giữ `web/*.template.html` và `tools/**/*.mjs`. Nên `git pull` không bao giờ đụng
+tới trang chạy được: kéo về mã mới rồi mở `web/race.html` là đang xem bản dựng
+của lần trước. Đã mất một buổi vì chuyện này (commit thêm anim chân chó, pull về,
+mở lên thấy y như cũ).
+
+Kho mã có sẵn hook lo việc đó. **Mỗi clone mới chạy một lần:**
+
+```bash
+npm run hooks    # git config core.hooksPath tools/git-hooks
+```
+
+Từ đó `tools/git-hooks/post-merge` tự chạy `build:web` sau mỗi lần pull có đổi
+`tools/` hoặc `web/*.template.html`. Sửa README thì nó bỏ qua. Dựng hỏng thì nó
+kêu to nhưng vẫn để lệnh pull thành công — một lần pull gãy vì hook còn tệ hơn
+một lần quên dựng.
+
+Hook chỉ bám vào merge. Ai đặt `pull.rebase = true` thì nó không nổ, phải tự chạy
+`npm run build:web`, hoặc thêm `post-rewrite`.
+
+---
+
 ## Chạy toàn bộ kiểm thử
 
 ```bash
@@ -39,6 +63,7 @@ kiểm tra trang → đối chiếu C# với JS. Cần `node` và `dotnet`, **kh
 | `npm run selftest` | Chứng minh thuật toán công bằng: phân bố đều, không thiên lệch |
 | `npm run vectors` | Sinh `tests/vectors/fairness-vectors.tsv` từ bản JS |
 | `npm run build:web` | Dựng `web/verify.html` và `web/race.html` từ các file `.mjs` |
+| `npm run hooks` | Bật hook tự dựng lại sau mỗi `git pull` (chạy một lần cho mỗi clone) |
 | `npm run check:verify` | Kiểm tra trang dựng ra khớp thư viện và tự chứa |
 | `npm run check:csharp` | Đối chiếu 10 220 phép tính giữa C# và JS |
 | `npm run drama` | Cửa kịch tính đường đua: 200 cuộc đua, 10 ràng buộc |

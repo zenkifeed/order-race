@@ -1,0 +1,37 @@
+#!/bin/sh
+# Dựng lại trang web sau mỗi lần "git pull".
+#
+# Vì sao cần: web/*.html là file sinh ra, đang bị .gitignore bỏ qua có chủ đích
+# (chỉ web/*.template.html và tools/**/*.mjs mới nằm trong git). Nên "git pull"
+# không bao giờ đụng tới trang chạy được. Đã có lần kéo về commit thêm anim chân
+# chó rồi mở web/race.html thấy y như cũ — vì đó là bản dựng của hôm trước.
+#
+# Hook này không bao giờ làm hỏng lệnh pull: mọi nhánh lỗi đều exit 0, chỉ in
+# cảnh báo. Một lần pull thất bại vì hook thì tệ hơn một lần quên dựng.
+
+cd "$(git rev-parse --show-toplevel)" || exit 0
+
+# ORIG_HEAD do chính lệnh merge/pull đặt ra, trỏ vào nơi ta đứng trước khi kéo.
+# Không có nó (merge đầu tiên của một clone mới) thì cứ dựng, rẻ hơn là đoán.
+if git rev-parse --verify --quiet ORIG_HEAD >/dev/null; then
+  changed=$(git diff-tree -r --name-only ORIG_HEAD HEAD)
+  # Chỉ dựng khi thứ đi vào bản dựng có đổi. Sửa README hay docs thì thôi.
+  if ! printf '%s\n' "$changed" | grep -qE '^(tools/|web/.*\.template\.html$)'; then
+    exit 0
+  fi
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "post-merge: không thấy node — hãy tự chạy 'npm run build:web'." >&2
+  exit 0
+fi
+
+echo "post-merge: nguồn đã đổi, đang dựng lại web/ ..."
+if node tools/build-web.mjs; then
+  exit 0
+fi
+
+echo "" >&2
+echo "post-merge: DỰNG HỎNG — web/*.html vẫn là bản cũ, đừng đem đi quay thưởng." >&2
+echo "            Chạy 'npm run build:web' để xem lỗi đầy đủ." >&2
+exit 0
