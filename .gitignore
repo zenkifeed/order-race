@@ -22,6 +22,7 @@ node_modules/
 web/index.html
 web/race.html
 web/redlight.html
+web/music/
 tests/vectors/fairness-vectors.tsv
 
 # Nhạc nền — file nhạc là tài sản của bạn, không đưa vào kho mã

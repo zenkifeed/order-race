@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:web && cp -r music web/music",
+  "outputDirectory": "web",
+  "framework": null,
+  "trailingSlash": false
+}
