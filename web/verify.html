@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiểm chứng kết quả — Order Race</title>
+<style>
+:root{
+  --paper:#ecefe8; --surface:#f7f8f4; --surface-2:#e3e7dd;
+  --ink:#101613; --ink-2:#414b44; --ink-3:#6d776f;
+  --rail:#c8cec3; --turf:#0f6b47; --turf-soft:#d7e8de;
+  --danger:#a8331f; --danger-soft:#f6e0da; --lure:#c07d05;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0e120f; --surface:#161b17; --surface-2:#1e241f;
+    --ink:#e4e9e0; --ink-2:#aab3a8; --ink-3:#7d867d;
+    --rail:#2c332d; --turf:#48c390; --turf-soft:#15382a;
+    --danger:#e37a63; --danger-soft:#3a1f19; --lure:#f0be51;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+.wrap{max-width:940px;margin:0 auto;padding:32px 20px 96px}
+h1{font-size:clamp(26px,4vw,36px);line-height:1.15;margin:0 0 10px;letter-spacing:-.015em}
+h2{font-size:17px;margin:34px 0 12px;letter-spacing:.01em}
+p{margin:0 0 14px;max-width:68ch}
+.lede{color:var(--ink-2)}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+.card{background:var(--surface);border:1px solid var(--rail);border-radius:6px;padding:20px}
+label{display:block;font-size:13px;font-weight:600;letter-spacing:.02em;margin:0 0 6px;color:var(--ink-2)}
+.hint{font-size:12.5px;color:var(--ink-3);margin:5px 0 0}
+textarea,input[type=text],input[type=number]{
+  width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;
+  background:var(--paper);color:var(--ink);
+  border:1px solid var(--rail);border-radius:4px;padding:10px 12px;
+}
+textarea{min-height:190px;resize:vertical}
+textarea:focus,input:focus{outline:2px solid var(--turf);outline-offset:1px;border-color:var(--turf)}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:760px){.grid.three{grid-template-columns:2fr 1fr 1fr}}
+.row{margin-top:16px}
+button{
+  font:600 15px/1 inherit;padding:13px 24px;border-radius:5px;cursor:pointer;
+  background:var(--turf);color:#fff;border:1px solid var(--turf);
+}
+button:hover{filter:brightness(1.08)}
+button:focus-visible{outline:2px solid var(--lure);outline-offset:2px}
+.verdict{border-radius:6px;padding:18px 20px;margin:24px 0;border:1px solid;display:none}
+.verdict.on{display:block}
+.verdict h3{margin:0 0 6px;font-size:20px}
+.verdict p{margin:0;font-size:14.5px}
+.verdict.ok{background:var(--turf-soft);border-color:var(--turf);color:var(--ink)}
+.verdict.ok h3{color:var(--turf)}
+.verdict.bad{background:var(--danger-soft);border-color:var(--danger);color:var(--ink)}
+.verdict.bad h3{color:var(--danger)}
+.facts{display:grid;gap:1px;background:var(--rail);border:1px solid var(--rail);border-radius:5px;overflow:hidden;margin:20px 0}
+@media(min-width:700px){.facts{grid-template-columns:repeat(3,1fr)}}
+.facts>div{background:var(--surface);padding:12px 14px}
+.facts dt{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.facts dd{margin:0;font-size:13px;word-break:break-all}
+.tw{overflow-x:auto;border:1px solid var(--rail);border-radius:5px;margin:16px 0}
+table{border-collapse:collapse;width:100%;background:var(--surface);font-size:14.5px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--rail)}
+thead th{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.rank{font-variant-numeric:tabular-nums;width:64px;color:var(--ink-3)}
+tr.win td{background:var(--turf-soft);font-weight:600}
+tr.win td.rank{color:var(--turf)}
+.err{color:var(--danger);font-size:14.5px;margin-top:14px;display:none}
+.err.on{display:block}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rail);font-size:13px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Kiểm chứng kết quả Order Race</h1>
+  <p class="lede">
+    Trang này tính lại thứ hạng của một lượt quay thưởng từ hai thứ đã được công bố trong buổi lễ:
+    danh sách người tham gia và tên giải thưởng. Không có máy chủ, không có kết nối mạng — toàn bộ
+    phép tính chạy ngay trong trình duyệt của bạn, và mã nguồn nằm hết trong chính file này
+    (bấm Ctrl+U để xem).
+  </p>
+  <p class="lede">
+    Nếu thứ hạng tính ra ở đây trùng với thứ hạng đã công bố, nghĩa là kết quả công bố đúng là kết
+    quả mà thuật toán sinh ra — không có ai sửa tay ở khâu công bố.
+  </p>
+  <p class="lede" style="border-left:3px solid var(--lure);padding-left:14px">
+    <strong>Nói thẳng về giới hạn:</strong> seed chỉ phụ thuộc danh sách và tên giải, mà cả hai đều
+    biết trước buổi lễ. Nghĩa là bất kỳ ai có mã nguồn đều tính trước được người thắng. Trang này
+    chứng minh kết quả <em>không bị sửa</em>, chứ không chứng minh được là <em>không ai biết trước</em>.
+  </p>
+
+  <h2>Nhập dữ liệu đã công bố</h2>
+  <div class="card">
+    <div class="grid three">
+      <div>
+        <label for="roster">Danh sách người tham gia — mỗi dòng một tên</label>
+        <textarea id="roster" spellcheck="false" placeholder="Nguyễn Văn A&#10;Trần Thị B&#10;Lê Văn C"></textarea>
+        <p class="hint">Dán thẳng từ Excel cũng được. Thứ tự dán không quan trọng.</p>
+      </div>
+      <div>
+        <label for="prize">Tên giải thưởng</label>
+        <input type="text" id="prize" spellcheck="false" placeholder="Giải Nhất Quý 3">
+        <p class="hint">Chép đúng y nguyên tên giải đã hiện trên màn hình.</p>
+
+        <div class="row">
+          <label for="topk">Số người trúng</label>
+          <input type="number" id="topk" value="3" min="0" max="150">
+        </div>
+      </div>
+      <div>
+        <label for="expected">Seed đã công bố (tuỳ chọn)</label>
+        <input type="text" id="expected" spellcheck="false" placeholder="dán seed hiện trên màn hình">
+        <p class="hint">
+          Điền vào đây thì trang sẽ nói thẳng KHỚP hay KHÔNG KHỚP, đỡ phải tự so từng ký tự.
+        </p>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="run" type="button">Tính lại kết quả</button>
+      <span class="err" id="err"></span>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <h3 id="verdictTitle"></h3>
+    <p id="verdictBody"></p>
+  </div>
+
+  <div id="output" hidden>
+    <h2>Kết quả tính lại</h2>
+    <dl class="facts">
+      <div><dt>Mã băm danh sách</dt><dd class="mono" id="outRoster"></dd></div>
+      <div><dt>Seed</dt><dd class="mono" id="outSeed"></dd></div>
+      <div><dt>Số người</dt><dd class="mono" id="outCount"></dd></div>
+    </dl>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Hạng</th><th>Tên</th></tr></thead>
+        <tbody id="outRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Thuật toán <code id="algo"></code> · SHA-256 + xorshift128 + xáo trộn Fisher-Yates.
+    Bản C# chạy trong game và bản JavaScript trong trang này được đối chiếu trên hơn 10 000 ca
+    để bảo đảm cho ra kết quả giống hệt nhau.
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+// ===========================================================================
+//  Toàn bộ thuật toán được nhúng nguyên văn bên dưới, sinh tự động từ
+//  tools/fairness/sha256.mjs và tools/fairness/fairness.mjs.
+//  KHÔNG sửa trực tiếp file này — sửa hai file kia rồi chạy:
+//      node tools/fairness/build-verify.mjs
+// ===========================================================================
+
+// ---------------------------------------------------------------------
+//  SINH TỰ ĐỘNG — đừng sửa ở đây.
+//  Dựng lại bằng: node tools/build-web.mjs
+// ---------------------------------------------------------------------
+
+// SHA-256 thuần JS — Order Race / M0
+//
+// Vì sao không dùng crypto.subtle: nó bất đồng bộ, và không phải trình duyệt nào
+// cũng cấp nó khi trang được mở bằng file://. Trang kiểm chứng phải chạy được ở
+// mọi nơi, kể cả khi ai đó tải file về máy và mở trực tiếp — và quan trọng hơn,
+// toàn bộ thuật toán phải đọc được trong chính file đó.
+
+const K = new Uint32Array([
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+]);
+
+const ENCODER = new TextEncoder();
+
+/** Chuỗi -> byte UTF-8. KHÔNG tự chuẩn hoá; việc đó do lớp trên quyết định. */
+function utf8(str) {
+  return ENCODER.encode(str);
+}
+
+function toHex(bytes) {
+  let out = "";
+  for (let i = 0; i < bytes.length; i++) out += bytes[i].toString(16).padStart(2, "0");
+  return out;
+}
+
+function sha256Bytes(input) {
+  const len = input.length;
+  const padLen = ((len + 9 + 63) >> 6) << 6;
+  const msg = new Uint8Array(padLen);
+  msg.set(input);
+  msg[len] = 0x80;
+
+  const dv = new DataView(msg.buffer);
+  const bitLen = len * 8;
+  dv.setUint32(padLen - 8, Math.floor(bitLen / 4294967296) >>> 0);
+  dv.setUint32(padLen - 4, bitLen >>> 0);
+
+  const H = new Uint32Array([
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+  ]);
+  const w = new Uint32Array(64);
+
+  for (let off = 0; off < padLen; off += 64) {
+    for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const x = w[i - 15];
+      const y = w[i - 2];
+      const s0 = ((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3);
+      const s1 = ((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10);
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+    }
+
+    let a = H[0], b = H[1], c = H[2], d = H[3];
+    let e = H[4], f = H[5], g = H[6], h = H[7];
+
+    for (let i = 0; i < 64; i++) {
+      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + (S1 >>> 0) + (ch >>> 0) + K[i] + w[i]) >>> 0;
+      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = ((S0 >>> 0) + (maj >>> 0)) >>> 0;
+
+      h = g; g = f; f = e; e = (d + t1) >>> 0;
+      d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+
+    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0;
+    H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0;
+    H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+  }
+
+  const out = new Uint8Array(32);
+  const odv = new DataView(out.buffer);
+  for (let i = 0; i < 8; i++) odv.setUint32(i * 4, H[i]);
+  return out;
+}
+
+function sha256HexOfString(str) {
+  return toHex(sha256Bytes(utf8(str)));
+}
+
+
+// Cỗ máy công bằng — Order Race / M0
+//
+// Đây là NGUỒN DUY NHẤT của thuật toán. Bản C# trong Assets/Scripts/Fairness
+// phải cho ra kết quả giống hệt file này trên mọi đầu vào; bộ đối chiếu ở
+// tools/csharp-check kiểm tra điều đó bằng vector vàng do file này sinh ra.
+//
+// Không có gì trong file này được phép biết tới đồ hoạ, Unity, hay lớp đạo diễn.
+
+
+const ALGORITHM = "order-race/fairness/v2";
+const MAX_ROSTER = 150; // trần cứng, chốt 02.09.2026 — xem GDD §2
+const MIN_ROSTER = 2;
+
+/**
+ * Chuẩn hoá một cái tên. Đây là hàm nhạy cảm nhất của toàn bộ M0.
+ *
+ * Ba việc, theo đúng thứ tự:
+ *   1. NFC — tên tiếng Việt dán từ Google Sheets, Excel và macOS có thể mang
+ *      cùng một chữ ở hai dạng byte khác nhau ("ế" = U+1EBF, hoặc "e" + hai dấu
+ *      tổ hợp). Không chuẩn hoá thì hai người gõ cùng một tên cho ra hai mã băm.
+ *   2. Gộp mọi cụm khoảng trắng thành đúng một dấu cách. Dán từ Excel rất hay
+ *      lẫn tab, khoảng trắng cứng (U+00A0) và BOM (U+FEFF) vào giữa tên.
+ *   3. Cắt hai đầu.
+ *
+ * KHÔNG dùng String.trim() của JS hay string.Trim() của C#: hai hàm đó cắt hai
+ * tập ký tự KHÁC NHAU — JS cắt U+FEFF, C# thì không. Đúng loại lệch âm thầm mà
+ * bộ đối chiếu sinh ra để bắt. Vì vậy tập ký tự dưới đây được liệt kê tường minh.
+ */
+const TRIMMABLE = new Set([
+  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0x85, 0xa0, 0x1680,
+  0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008,
+  0x2009, 0x200a, 0x200b, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+]);
+
+function isTrimmable(codeUnit) {
+  return TRIMMABLE.has(codeUnit);
+}
+
+function normalizeName(value) {
+  const s = String(value == null ? "" : value).normalize("NFC");
+  let out = "";
+  let pendingSpace = false;
+  for (let i = 0; i < s.length; i++) {
+    if (isTrimmable(s.charCodeAt(i))) {
+      if (out.length > 0) pendingSpace = true;
+      continue;
+    }
+    if (pendingSpace) { out += " "; pendingSpace = false; }
+    out += s[i];
+  }
+  return out;
+}
+
+/** Giữ lại tên cũ cho dễ đọc; NFC là bước đầu của normalizeName. */
+function nfc(s) {
+  return String(s == null ? "" : s).normalize("NFC");
+}
+
+/** Chuẩn hoá từng dòng, bỏ dòng rỗng. */
+function prepareRoster(lines) {
+  const out = [];
+  for (const line of lines) {
+    const t = normalizeName(line);
+    if (t.length > 0) out.push(t);
+  }
+  return out;
+}
+
+/**
+ * So sánh theo byte UTF-8, KHÔNG theo locale.
+ *
+ * So sánh theo locale tiếng Việt cho thứ tự khác nhau giữa hai môi trường và
+ * giữa hai phiên bản ICU — đó là một trong ba cái bẫy đã ghi ở GDD §4.
+ * So byte thì chỉ có đúng một câu trả lời, ở mọi nơi, mãi mãi.
+ */
+function compareUtf8(a, b) {
+  const ba = utf8(a);
+  const bb = utf8(b);
+  const n = Math.min(ba.length, bb.length);
+  for (let i = 0; i < n; i++) {
+    if (ba[i] !== bb[i]) return ba[i] - bb[i];
+  }
+  return ba.length - bb.length;
+}
+
+function sortRoster(names) {
+  return [...names].sort(compareUtf8);
+}
+
+/** Trả về danh sách tên xuất hiện nhiều hơn một lần (đầu vào đã sắp xếp). */
+function findDuplicates(sorted) {
+  const dups = [];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === sorted[i - 1] && dups[dups.length - 1] !== sorted[i]) {
+      dups.push(sorted[i]);
+    }
+  }
+  return dups;
+}
+
+function rosterHash(sortedNames) {
+  return toHex(sha256Bytes(utf8(sortedNames.join("\n"))));
+}
+
+/**
+ * Seed chỉ phụ thuộc danh sách và tên giải.
+ *
+ * GHI CHÚ QUAN TRỌNG: cả hai đầu vào đều biết trước buổi lễ, nên kết quả tính
+ * trước được. Đây là lựa chọn có ý thức (xem GDD §4) chứ không phải thiếu sót —
+ * phiên bản v1 từng có thêm một chuỗi do khán giả đọc tại chỗ để chặn điều đó.
+ *
+ * Hệ quả trực tiếp: cùng danh sách + cùng tên giải LUÔN cho cùng người thắng.
+ * Mỗi lượt quay trong một buổi phải mang tên giải khác nhau, nếu không lượt sau
+ * sẽ lặp lại y hệt lượt trước.
+ */
+function seedHex(rosterHashHex, prizeLabel) {
+  const payload = rosterHashHex + "|" + normalizeName(prizeLabel);
+  return toHex(sha256Bytes(utf8(payload)));
+}
+
+/**
+ * xorshift128, số học 32-bit không dấu.
+ *
+ * Trạng thái lấy từ 4 word đầu của seed (big-endian). Trạng thái toàn 0 sẽ khiến
+ * xorshift đứng im mãi mãi; xác suất SHA-256 cho ra 128 bit 0 là không đáng kể
+ * nhưng vẫn phải xử lý, và phải xử lý GIỐNG NHAU ở cả hai ngôn ngữ.
+ */
+function makeRng(seedHexStr) {
+  const s = new Uint32Array(4);
+  for (let i = 0; i < 4; i++) {
+    s[i] = parseInt(seedHexStr.slice(i * 8, i * 8 + 8), 16) >>> 0;
+  }
+  if ((s[0] | s[1] | s[2] | s[3]) === 0) {
+    s[0] = 0x9e3779b9; s[1] = 0x243f6a88; s[2] = 0xb7e15162; s[3] = 0x85ebca6b;
+  }
+  return {
+    next() {
+      let t = s[3];
+      const x = s[0];
+      s[3] = s[2];
+      s[2] = s[1];
+      s[1] = x;
+      t = (t ^ (t << 11)) >>> 0;
+      t = (t ^ (t >>> 8)) >>> 0;
+      s[0] = (t ^ x ^ (x >>> 19)) >>> 0;
+      return s[0];
+    },
+  };
+}
+
+/**
+ * Số nguyên đều trong [0, n) bằng phép loại bỏ.
+ *
+ * KHÔNG dùng next() % n: khi n không chia hết 2^32, modulo làm lệch phân phối về
+ * phía các chỉ số nhỏ. Với 150 người thì độ lệch cực nhỏ, nhưng "cực nhỏ" không
+ * phải là thứ nên nói trong một buổi trao thưởng.
+ */
+function uniformBelow(rng, n) {
+  if (n <= 1) return 0;
+  const limit = 4294967296 - (4294967296 % n);
+  let r;
+  do {
+    r = rng.next();
+  } while (r >= limit);
+  return r % n;
+}
+
+/** Fisher–Yates duyệt ngược. Sửa mảng tại chỗ và trả về chính nó. */
+function shuffleInPlace(arr, rng) {
+  for (let i = arr.length - 1; i >= 1; i--) {
+    const j = uniformBelow(rng, i + 1);
+    const t = arr[i];
+    arr[i] = arr[j];
+    arr[j] = t;
+  }
+  return arr;
+}
+
+/**
+ * Bốc thăm đầy đủ. Đây là hàm duy nhất mà phần còn lại của game được gọi.
+ * finalOrder[0] là hạng 1.
+ */
+function draw(lines, prizeLabel) {
+  const names = prepareRoster(lines);
+  if (names.length < MIN_ROSTER) {
+    throw new Error(`Danh sách cần ít nhất ${MIN_ROSTER} người, đang có ${names.length}.`);
+  }
+  if (names.length > MAX_ROSTER) {
+    throw new Error(`Danh sách tối đa ${MAX_ROSTER} người, đang có ${names.length}. Hãy chia thành nhiều lượt.`);
+  }
+  const sorted = sortRoster(names);
+  const dups = findDuplicates(sorted);
+  if (dups.length > 0) {
+    throw new Error(
+      `Trùng tên: ${dups.join(", ")}. Hãy phân biệt (thêm phòng ban) trước khi khoá danh sách.`
+    );
+  }
+  const rh = rosterHash(sorted);
+  const sh = seedHex(rh, prizeLabel);
+  const order = shuffleInPlace([...sorted], makeRng(sh));
+  return {
+    algorithm: ALGORITHM,
+    rosterHash: rh,
+    prizeLabel: normalizeName(prizeLabel),
+    seedHex: sh,
+    roster: sorted,
+    finalOrder: order,
+  };
+}
+
+/** Bộ sinh danh sách giả CHỈ DÙNG CHO KIỂM THỬ — bản C# phải sao y hàm này. */
+const TEST_SUFFIX = [
+  "An", "Bình", "Cường", "Dũng", "Hà", "Hương", "Khánh", "Linh",
+  "Minh", "Ngọc", "Phúc", "Quân", "Sơn", "Thảo", "Tuấn", "Vy",
+];
+
+function makeTestRoster(caseIndex, n) {
+  const out = new Array(n);
+  for (let k = 0; k < n; k++) {
+    const suffix = TEST_SUFFIX[(caseIndex * 31 + k * 17) % TEST_SUFFIX.length];
+    out[k] = `NV${String(caseIndex).padStart(5, "0")}-${k} ${suffix}`;
+  }
+  return out;
+}
+
+
+
+// ---------------------------------------------------------------- giao diện
+(function () {
+  const $ = (id) => document.getElementById(id);
+  $("algo").textContent = ALGORITHM;
+
+  const err = $("err");
+  const verdict = $("verdict");
+  const output = $("output");
+
+  function showError(message) {
+    err.textContent = message;
+    err.classList.add("on");
+    verdict.classList.remove("on");
+    output.hidden = true;
+  }
+
+  function run() {
+    err.classList.remove("on");
+    verdict.classList.remove("on", "ok", "bad");
+
+    const lines = $("roster").value.split(/\r?\n/);
+    let result;
+    try {
+      result = draw(lines, $("prize").value);
+    } catch (e) {
+      showError(e.message);
+      return;
+    }
+
+    $("outRoster").textContent = result.rosterHash;
+    $("outSeed").textContent = result.seedHex;
+    $("outCount").textContent = result.roster.length + " người";
+
+    const topK = Math.max(0, Math.min(result.finalOrder.length, Number($("topk").value) || 0));
+    const rows = $("outRows");
+    rows.textContent = "";
+    result.finalOrder.forEach((name, i) => {
+      const tr = document.createElement("tr");
+      if (i < topK) tr.className = "win";
+      const td1 = document.createElement("td");
+      td1.className = "rank mono";
+      td1.textContent = "#" + (i + 1);
+      const td2 = document.createElement("td");
+      td2.textContent = name;
+      tr.append(td1, td2);
+      rows.append(tr);
+    });
+    output.hidden = false;
+
+    const expected = normalizeName($("expected").value).toLowerCase();
+    if (expected.length > 0) {
+      const ok = expected === result.seedHex;
+      verdict.classList.add("on", ok ? "ok" : "bad");
+      $("verdictTitle").textContent = ok ? "KHỚP" : "KHÔNG KHỚP";
+      $("verdictBody").textContent = ok
+        ? "Seed tính lại trùng khớp với seed đã công bố. Thứ hạng bên dưới đúng là thứ hạng mà cuộc đua đã diễn ra."
+        : "Seed tính lại khác với seed đã công bố. Thường là do một trong hai thứ nhập vào chưa đúng: "
+          + "thiếu hoặc thừa một người trong danh sách, hoặc sai tên giải thưởng (kể cả sai chữ hoa "
+          + "chữ thường). Hãy đối chiếu lại cả hai trước khi kết luận.";
+    }
+  }
+
+  $("run").addEventListener("click", run);
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") run();
+  });
+})();
+</script>
+</body>
+</html>
